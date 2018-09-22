@@ -141,6 +141,9 @@ struct sfhlog_config* sfhlog_config_parse(
 				if (result == -1) {
 					state = PARSE_STATE_ERROR;
 
+				} else if (result == 0) {
+					// Ignore empty line
+
 				} else {
 
 					switch (token.token_type) {
