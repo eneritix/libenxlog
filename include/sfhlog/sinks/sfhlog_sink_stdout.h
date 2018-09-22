@@ -25,6 +25,10 @@
 
 #include <sfhlog/sfhlog.h>
 
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
+
 
 void sfhlog_sink_stdout(
 		void* context,
@@ -34,5 +38,8 @@ void sfhlog_sink_stdout(
 		unsigned int line,
 		const char* fmt,
 		va_list ap);
+
+
+__END_DECLS
 
 #endif

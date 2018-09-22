@@ -27,6 +27,9 @@
 #include <sfhlog/config/sfhlog_config_sink_parameters.h>
 
 #include <stdbool.h>
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 
 typedef void (*sfhlog_config_parser_error_callback_t)(int line, int column, const char* message);
@@ -39,5 +42,7 @@ struct sfhlog_config* sfhlog_config_parse(
 
 void sfhlog_config_destroy(struct sfhlog_config* config);
 
+
+__END_DECLS
 
 #endif

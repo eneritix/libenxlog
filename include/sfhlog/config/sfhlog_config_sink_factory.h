@@ -28,6 +28,9 @@
 #include <sfhlog/config/sfhlog_config_sink_parameters.h>
 
 #include <stdbool.h>
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 
 bool sfhlog_config_sink_factory_create_sink(
@@ -36,5 +39,7 @@ bool sfhlog_config_sink_factory_create_sink(
 	sfhlog_config_parser_sink_creation_callback_t sink_creation_callback,
 	sfhlog_config_parser_error_callback_t error_callback);
 
+
+__END_DECLS
 
 #endif

@@ -24,6 +24,10 @@
 #define SFHLOG_CONFIG_SINK_PARAMETERS_H
 
 #include <stdlib.h>
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
+
 
 struct sfhlog_config_sink_parameter
 {
@@ -59,5 +63,8 @@ void sfhlog_config_sink_parameter_list_destroy(struct sfhlog_config_sink_paramet
 void sfhlog_config_sink_parameter_list_add(struct sfhlog_config_sink_parameter_list* list, struct sfhlog_config_sink_parameters* parameters);
 size_t sfhlog_config_sink_parameter_list_get_count(struct sfhlog_config_sink_parameter_list* list);
 struct sfhlog_config_sink_parameters* sfhlog_config_sink_parameter_list_get_at(struct sfhlog_config_sink_parameter_list* list, size_t index);
+
+
+__END_DECLS
 
 #endif
