@@ -28,10 +28,10 @@
 #include <string.h>
 
 
-bool sfhlog_config_sink_factory_create_stdout_sink(
-	struct sfhlog_sink* sink,
-	const struct sfhlog_config_sink_parameters* parameters,
-	sfhlog_config_parser_error_callback_t error_callback)
+static bool sfhlog_config_sink_factory_create_stdout_sink(
+		struct sfhlog_sink* sink,
+		const struct sfhlog_config_sink_parameters* parameters,
+		sfhlog_config_parser_error_callback_t error_callback)
 {
 	sink->output_function = sfhlog_sink_stdout;
 	sink->shutdown_function = NULL;
@@ -40,7 +40,19 @@ bool sfhlog_config_sink_factory_create_stdout_sink(
 	return true;
 }
 
-bool sfhlog_config_sink_factory_create_file_sink(
+static bool sfhlog_config_sink_factory_create_stdout_color_sink(
+		struct sfhlog_sink* sink,
+		const struct sfhlog_config_sink_parameters* parameters,
+		sfhlog_config_parser_error_callback_t error_callback)
+{
+	sink->output_function = sfhlog_sink_stdout_color;
+	sink->shutdown_function = NULL;
+	sink->context = NULL;
+
+	return true;
+}
+
+static bool sfhlog_config_sink_factory_create_file_sink(
 		struct sfhlog_sink* sink,
 		const struct sfhlog_config_sink_parameters* parameters,
 		sfhlog_config_parser_error_callback_t error_callback)
@@ -81,6 +93,9 @@ bool sfhlog_config_sink_factory_create_sink(
 
 	if (strcmp(value, "stdout") == 0) {
 		return sfhlog_config_sink_factory_create_stdout_sink(sink, parameters, error_callback);
+
+	} else if (strcmp(value, "stdout_color") == 0) {
+		return sfhlog_config_sink_factory_create_stdout_color_sink(sink, parameters, error_callback);
 
 	} else if (strcmp(value, "file") == 0) {
 		return sfhlog_config_sink_factory_create_file_sink(sink, parameters, error_callback);
