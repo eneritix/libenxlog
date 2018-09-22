@@ -68,14 +68,13 @@ void sfhlog_log(
 	}
 
 	// Log
-	va_list args;
-	va_start(args, fmt);
-
 	const struct sfhlog_sink* sink = _sfhlog_config->sinks;
 	while (sink->output_function) {
+		va_list args;
+		va_start(args, fmt);
 		sink->output_function(sink->context, logger, severity, func, line, fmt, args);
+		va_end(args);
 		sink++;
 	}
 
-	va_end(args);
 }
