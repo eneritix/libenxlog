@@ -31,11 +31,17 @@
 #include <string.h>
 
 
+enum token_type
+{
+	TOKEN_IDENTIFIER,
+	TOKEN_STRING,
+	TOKEN_SEPARATOR,
+	TOKEN_ASSIGNMENT,
+	TOKEN_SECTION,
+	TOKEN_COMMENT
+};
 
-enum token_type { TOKEN_IDENTIFIER, TOKEN_STRING, TOKEN_SEPARATOR, TOKEN_ASSIGNMENT, TOKEN_SECTION, TOKEN_COMMENT };
-
-
-enum parse_state
+enum parse_state_identifier
 {
 	PARSE_STATE_SECTION_NONE,
 	PARSE_STATE_SECTION_SINK,
@@ -60,24 +66,37 @@ struct sfhlog_config_tokenizer_token
 
 struct sfhlog_config_parse_state
 {
+	enum parse_state_identifier state;
 	struct sfhlog_config* config;
 	struct sfhlog_config_sink_parameter_list sink_parameter_list;
 	struct sfhlog_config_sink_parameters* sink_parameters;
-
+	int line_number;
 };
 
 
-static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_parse_state* parse_state, const char* line, int line_number, sfhlog_config_parser_error_callback_t error_callback);
-static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_parse_state* parse_state, const char* line, int line_number, sfhlog_config_parser_error_callback_t error_callback);
+static void sfhlog_config_destroy_recursive(struct sfhlog_config_node* config);
+
+static struct sfhlog_config_parse_state* sfhlog_config_create_parse_state();
+static void sfhlog_config_destroy_parse_state(struct sfhlog_config_parse_state* parse_state);
+
+static void sfhlog_config_parse_section_none(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line,
+
+	sfhlog_config_parser_error_callback_t error_callback);
+static void sfhlog_config_parse_section_sink(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line, sfhlog_config_parser_error_callback_t error_callback);
+
+static void sfhlog_config_parse_section_logger(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line,
+	sfhlog_config_parser_error_callback_t error_callback);
 
 static struct sfhlog_config_node* sfhlog_config_allocate_empty_entry();
 static struct sfhlog_config_node* sfhlog_config_find_entry(struct sfhlog_config_node* parent, const char* path);
 static struct sfhlog_config_node* sfhlog_config_append_child_entry(struct sfhlog_config_node* parent, const char* path, enum sfhlog_severity severity);
 static enum sfhlog_severity sfhlog_config_parse_severity(const char* name);
-
-
-
-static void sfhlog_config_destroy_recursive(struct sfhlog_config_node* config);
 
 static void sfhlog_config_tokenizer_init(
 	struct sfhlog_config_tokenizer* tokenizer,
@@ -97,98 +116,34 @@ struct sfhlog_config* sfhlog_config_parse(
 	sfhlog_config_parser_sink_creation_callback_t sink_creation_callback,
 	sfhlog_config_parser_error_callback_t error_callback)
 {
+	char* line = NULL;
+	size_t line_length = 0;
+
+
+	// Open the input file
 	FILE* file = fopen(path, "r");
 	if (file == NULL) {
 		return NULL;
 	}
 
+	// Create the parse state
+	struct sfhlog_config_parse_state* parse_state = sfhlog_config_create_parse_state();
 
-	struct sfhlog_config_parse_state* parse_state = malloc(sizeof(struct sfhlog_config_parse_state));
-
-	parse_state->config = malloc(sizeof(struct sfhlog_config));
-	parse_state->config->root = malloc(sizeof(struct sfhlog_config_node));
-	parse_state->config->sinks = NULL;
-
-	parse_state->config->root->path = strdup("");
-	parse_state->config->root->severity = LOG_SEVERITY_NONE;
-	parse_state->config->root->children = sfhlog_config_allocate_empty_entry();
-
-	sfhlog_config_sink_parameter_list_init(&parse_state->sink_parameter_list);
-	parse_state->sink_parameters = NULL;
-
-
-	char* line = NULL;
-	size_t line_length = 0;
-
-
-
-	enum parse_state state = PARSE_STATE_SECTION_NONE;
-	int line_number = 0;
-
+	// Process lines
 	while (getline(&line, &line_length, file) != -1) {
 
-
-		switch (state) {
+		switch (parse_state->state) {
 
 			case PARSE_STATE_SECTION_NONE: {
-
-				struct sfhlog_config_tokenizer tokenizer;
-				sfhlog_config_tokenizer_init(&tokenizer, line);
-
-				struct sfhlog_config_tokenizer_token token;
-				int result = sfhlog_config_tokenizer_get_next_token(line_number, &tokenizer, &token, error_callback);
-
-				if (result == -1) {
-					state = PARSE_STATE_ERROR;
-
-				} else if (result == 0) {
-					// Ignore empty line
-
-				} else {
-
-					switch (token.token_type) {
-
-						case TOKEN_SECTION: {
-
-							char *name = sfhlog_config_token_to_string(&token);
-							if (strcmp(name, "sink") == 0) {
-								free(name);
-
-								if (parse_state->sink_parameters) {
-									sfhlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
-								}
-								parse_state->sink_parameters = sfhlog_config_sink_parameters_create();
-
-								state = PARSE_STATE_SECTION_SINK;
-
-							} else if (strcmp(name, "logger") == 0) {
-								free(name);
-								state = PARSE_STATE_SECTION_LOGGER;
-
-							} else {
-
-								error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
-								state = PARSE_STATE_ERROR;
-							}
-						} break;
-
-						case TOKEN_COMMENT: break;
-
-						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected SECTION");
-							state = PARSE_STATE_ERROR;
-						} break;
-
-					} break;
-				}
+				sfhlog_config_parse_section_none(parse_state, line, error_callback);
 			} break;
 
 			case PARSE_STATE_SECTION_SINK: {
-				state = sfhlog_config_parse_section_sink(parse_state, line, line_number, error_callback);
+				sfhlog_config_parse_section_sink(parse_state, line, error_callback);
 			} break;
 
 			case PARSE_STATE_SECTION_LOGGER: {
-				state = sfhlog_config_parse_section_logger(parse_state, line, line_number, error_callback);
+				sfhlog_config_parse_section_logger(parse_state, line, error_callback);
 			} break;
 
 			default: break;
@@ -196,30 +151,26 @@ struct sfhlog_config* sfhlog_config_parse(
 
 		free(line);
 		line_length = 0;
-		line_number++;
+		parse_state->line_number++;
 
-		if (state == PARSE_STATE_ERROR) {
+		if (parse_state->state == PARSE_STATE_ERROR) {
 			break;
 		}
-
 	}
 
 	// Append dangling sink parameter
 	if (parse_state->sink_parameters) {
 		sfhlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
+		parse_state->sink_parameters = NULL;
 	}
 
 	// Close the file
 	fclose(file);
 
 
-	// If a parse error has occured, destroy all the objects and exit
-	if (state == PARSE_STATE_ERROR) {
-		sfhlog_config_sink_parameter_list_destroy(&parse_state->sink_parameter_list);
-		sfhlog_config_destroy(parse_state->config);
-
-		free(parse_state);
-
+	// If a parse error has occurred, destroy the parse state and exit
+	if (parse_state->state == PARSE_STATE_ERROR) {
+		sfhlog_config_destroy_parse_state(parse_state);
 		return NULL;
 	}
 
@@ -248,17 +199,17 @@ struct sfhlog_config* sfhlog_config_parse(
 		}
 	}
 
+	// If any sink creation failed, destroy the parse state and exit
 	if (!sinks_created) {
-		sfhlog_config_sink_parameter_list_destroy(&parse_state->sink_parameter_list);
-		sfhlog_config_destroy(parse_state->config);
-		free(parse_state);
+		sfhlog_config_destroy_parse_state(parse_state);
 		return NULL;
 	}
 
 
-	sfhlog_config_sink_parameter_list_destroy(&parse_state->sink_parameter_list);
+	// Detach the config, destroy the parse state, and exit
 	struct sfhlog_config* config = parse_state->config;
-	free(parse_state);
+	parse_state->config = NULL;
+	sfhlog_config_destroy_parse_state(parse_state);
 
 	return config;
 }
@@ -287,7 +238,106 @@ void sfhlog_config_destroy(struct sfhlog_config* config)
 	free(config);
 }
 
-static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_parse_state* parse_state, const char* line, int line_number, sfhlog_config_parser_error_callback_t error_callback)
+static struct sfhlog_config_parse_state* sfhlog_config_create_parse_state()
+		{
+	struct sfhlog_config_parse_state *parse_state = malloc(sizeof(struct sfhlog_config_parse_state));
+
+	parse_state->config = malloc(sizeof(struct sfhlog_config));
+	parse_state->config->root = malloc(sizeof(struct sfhlog_config_node));
+	parse_state->config->sinks = NULL;
+
+	parse_state->config->root->path = strdup("");
+	parse_state->config->root->severity = LOG_SEVERITY_NONE;
+	parse_state->config->root->children = sfhlog_config_allocate_empty_entry();
+
+	parse_state->state = PARSE_STATE_SECTION_NONE;
+	parse_state->line_number = 0;
+
+	sfhlog_config_sink_parameter_list_init(&parse_state->sink_parameter_list);
+	parse_state->sink_parameters = NULL;
+
+	return parse_state;
+}
+
+static void sfhlog_config_destroy_parse_state(struct sfhlog_config_parse_state* parse_state)
+{
+
+	// Destroy the sink parameter list
+	sfhlog_config_sink_parameter_list_destroy(&parse_state->sink_parameter_list);
+
+	// Destroy any dangling sink parameters
+	if (parse_state->sink_parameters) {
+		sfhlog_config_sink_parameters_destroy(parse_state->sink_parameters);
+	}
+
+	// Destroy the configuration
+	if (parse_state->config) {
+		sfhlog_config_destroy(parse_state->config);
+	}
+
+	// Free the parse state
+	free(parse_state);
+}
+
+static void sfhlog_config_parse_section_none(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line,
+	sfhlog_config_parser_error_callback_t error_callback)
+{
+
+	struct sfhlog_config_tokenizer tokenizer;
+	sfhlog_config_tokenizer_init(&tokenizer, line);
+
+	struct sfhlog_config_tokenizer_token token;
+	int result = sfhlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
+
+	if (result == -1) {
+		parse_state->state = PARSE_STATE_ERROR;
+
+	} else if (result == 0) {
+		// Ignore empty line
+
+	} else {
+
+		switch (token.token_type) {
+
+			case TOKEN_SECTION: {
+
+				char *name = sfhlog_config_token_to_string(&token);
+				if (strcmp(name, "sink") == 0) {
+					free(name);
+
+					if (parse_state->sink_parameters) {
+						sfhlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
+					}
+
+					parse_state->sink_parameters = sfhlog_config_sink_parameters_create();
+
+					parse_state->state = PARSE_STATE_SECTION_SINK;
+
+				} else if (strcmp(name, "logger") == 0) {
+					free(name);
+					parse_state->state = PARSE_STATE_SECTION_LOGGER;
+
+				} else {
+					error_callback(parse_state->line_number, (int) (tokenizer.ptr - tokenizer.input), "Unknown section");
+					parse_state->state = PARSE_STATE_ERROR;
+				}
+			} break;
+
+			case TOKEN_COMMENT: break;
+
+			default: {
+				error_callback(parse_state->line_number, (int) (tokenizer.ptr - tokenizer.input), "Expected SECTION");
+				parse_state->state = PARSE_STATE_ERROR;
+			} break;
+		}
+	}
+}
+
+static void sfhlog_config_parse_section_sink(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line, sfhlog_config_parser_error_callback_t error_callback)
 {
 	enum parse_substate
 	{
@@ -297,8 +347,6 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 		PARSE_SUBSTATE_VALUE,
 		PARSE_SUBSTATE_DONE
 	};
-
-	enum parse_state parent_state = PARSE_STATE_SECTION_SINK;
 
 
 	char* parameter_name = NULL;
@@ -310,32 +358,31 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 	sfhlog_config_tokenizer_init(&tokenizer, line);
 
 
-	enum parse_substate state = PARSE_SUBSTATE_START;
+	enum parse_substate parse_substate = PARSE_SUBSTATE_START;
 
-	while (state != PARSE_SUBSTATE_DONE) {
+	while (parse_substate != PARSE_SUBSTATE_DONE) {
 		struct sfhlog_config_tokenizer_token token;
 		int result;
 
 		// Consume the next token
-		result = sfhlog_config_tokenizer_get_next_token(line_number, &tokenizer, &token, error_callback);
+		result = sfhlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
 		if (result == -1) {
-			state = PARSE_SUBSTATE_DONE;
+			parse_substate = PARSE_SUBSTATE_DONE;
 
 		} else if (result == 0) {
 
-			if (state != PARSE_SUBSTATE_START) {
-				error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
-				state = PARSE_SUBSTATE_DONE;
-				parent_state = PARSE_STATE_ERROR;
+			if (parse_substate != PARSE_SUBSTATE_START) {
+				error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
+				parse_substate = PARSE_SUBSTATE_DONE;
+				parse_state->state = PARSE_STATE_ERROR;
 
 			} else {
-				state = PARSE_SUBSTATE_DONE;
+				parse_substate = PARSE_SUBSTATE_DONE;
 			}
 
 		} else {
 
-
-			switch (state) {
+			switch (parse_substate) {
 
 				case PARSE_SUBSTATE_START: {
 
@@ -352,34 +399,34 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 								}
 								parse_state->sink_parameters = sfhlog_config_sink_parameters_create();
 
-								parent_state = PARSE_STATE_SECTION_SINK;
-								state = PARSE_SUBSTATE_DONE;
+								parse_state->state = PARSE_STATE_SECTION_SINK;
+								parse_substate = PARSE_SUBSTATE_DONE;
 
 							} else if (strcmp(name, "logger") == 0) {
 								free(name);
-								parent_state = PARSE_STATE_SECTION_LOGGER;
-								state = PARSE_SUBSTATE_DONE;
+								parse_state->state = PARSE_STATE_SECTION_LOGGER;
+								parse_substate = PARSE_SUBSTATE_DONE;
 							} else {
 
-								error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
-								parent_state = PARSE_STATE_ERROR;
-								state = PARSE_SUBSTATE_DONE;
+								error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
+								parse_state->state = PARSE_STATE_ERROR;
+								parse_substate = PARSE_SUBSTATE_DONE;
 							}
 						} break;
 
 						case TOKEN_IDENTIFIER: {
 							parameter_name = sfhlog_config_token_to_string(&token);
-							state = PARSE_SUBSTATE_ASSIGNMENT;
+							parse_substate = PARSE_SUBSTATE_ASSIGNMENT;
 						} break;
 
 						case TOKEN_COMMENT: {
-							state = PARSE_SUBSTATE_DONE;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -390,14 +437,13 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 					switch (token.token_type) {
 
 						case TOKEN_ASSIGNMENT: {
-							state = PARSE_SUBSTATE_VALUE;
+							parse_substate = PARSE_SUBSTATE_VALUE;
+
 						} break;
-
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '='");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
-
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '='");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -408,13 +454,13 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 
 						case TOKEN_STRING: {
 							parameter_value = sfhlog_config_token_to_string(&token);
-							state = PARSE_SUBSTATE_DONE;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -424,7 +470,7 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 		}
 	}
 
-	if ((parent_state != PARSE_STATE_ERROR) && (parameter_name != NULL) && (parameter_value != NULL)) {
+	if ((parse_state->state != PARSE_STATE_ERROR) && (parameter_name != NULL) && (parameter_value != NULL)) {
 		sfhlog_config_sink_parameters_add(parse_state->sink_parameters, parameter_name, parameter_value);
 	}
 
@@ -435,13 +481,11 @@ static enum parse_state sfhlog_config_parse_section_sink(struct sfhlog_config_pa
 	if (parameter_value) {
 		free(parameter_value);
 	}
-
-
-	return parent_state;
-
 }
 
-static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_parse_state* parse_state, const char* line, int line_number, sfhlog_config_parser_error_callback_t error_callback)
+static void sfhlog_config_parse_section_logger(
+	struct sfhlog_config_parse_state* parse_state,
+	const char* line, sfhlog_config_parser_error_callback_t error_callback)
 {
 	enum parse_substate
 	{
@@ -452,8 +496,6 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 		PARSE_SUBSTATE_DONE
 	};
 
-	enum parse_state parent_state = PARSE_STATE_SECTION_LOGGER;
-
 	// Reset the parent pointer
 	struct sfhlog_config_node* parent = parse_state->config->root;
 
@@ -462,32 +504,31 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 	sfhlog_config_tokenizer_init(&tokenizer, line);
 
 
-	enum parse_substate state = PARSE_SUBSTATE_START;
+	enum parse_substate parse_substate = PARSE_SUBSTATE_START;
 
-	while (state != PARSE_SUBSTATE_DONE) {
+	while (parse_substate != PARSE_SUBSTATE_DONE) {
 		struct sfhlog_config_tokenizer_token token;
 		int result;
 
 		// Consume the next token
-		result = sfhlog_config_tokenizer_get_next_token(line_number, &tokenizer, &token, error_callback);
+		result = sfhlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
 		if (result == -1) {
-			state = PARSE_SUBSTATE_DONE;
+			parse_substate = PARSE_SUBSTATE_DONE;
 
 		} else if (result == 0) {
 
-			if (state != PARSE_SUBSTATE_START) {
-				error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
-				state = PARSE_SUBSTATE_DONE;
-				parent_state = PARSE_STATE_ERROR;
+			if (parse_substate != PARSE_SUBSTATE_START) {
+				error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
+				parse_substate = PARSE_SUBSTATE_DONE;
+				parse_state->state = PARSE_STATE_ERROR;
 
 			} else {
-				state = PARSE_SUBSTATE_DONE;
+				parse_substate = PARSE_SUBSTATE_DONE;
 			}
 
 		} else {
 
-
-			switch (state) {
+			switch (parse_substate) {
 
 				case PARSE_SUBSTATE_START: {
 
@@ -504,18 +545,18 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 								}
 								parse_state->sink_parameters = sfhlog_config_sink_parameters_create();
 
-								parent_state = PARSE_STATE_SECTION_SINK;
-								state = PARSE_SUBSTATE_DONE;
+								parse_state->state = PARSE_STATE_SECTION_SINK;
+								parse_substate = PARSE_SUBSTATE_DONE;
 
 							} else if (strcmp(name, "logger") == 0) {
 								free(name);
-								parent_state = PARSE_STATE_SECTION_LOGGER;
-								state = PARSE_SUBSTATE_DONE;
-							} else {
+								parse_state->state = PARSE_STATE_SECTION_LOGGER;
+								parse_substate = PARSE_SUBSTATE_DONE;
 
-								error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
-								parent_state = PARSE_STATE_ERROR;
-								state = PARSE_SUBSTATE_DONE;
+							} else {
+								error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
+								parse_state->state = PARSE_STATE_ERROR;
+								parse_substate = PARSE_SUBSTATE_DONE;
 							}
 						} break;
 
@@ -531,17 +572,17 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 								parent = sfhlog_config_append_child_entry(parent, path, LOG_SEVERITY_NONE);
 							}
 
-							state = PARSE_SUBSTATE_SEPARATOR;
+							parse_substate = PARSE_SUBSTATE_SEPARATOR;
 						} break;
 
 						case TOKEN_COMMENT: {
-							state = PARSE_SUBSTATE_DONE;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -563,14 +604,13 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 								parent = sfhlog_config_append_child_entry(parent, path, LOG_SEVERITY_NONE);
 							}
 
-							state = PARSE_SUBSTATE_SEPARATOR;
+							parse_substate = PARSE_SUBSTATE_SEPARATOR;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
-
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -580,17 +620,17 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 					switch (token.token_type) {
 
 						case TOKEN_SEPARATOR: {
-							state = PARSE_SUBSTATE_PATHNAME;
+							parse_substate = PARSE_SUBSTATE_PATHNAME;
 						} break;
 
 						case TOKEN_ASSIGNMENT: {
-							state = PARSE_SUBSTATE_IDENTIFIER;
+							parse_substate = PARSE_SUBSTATE_IDENTIFIER;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '.' or '='");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '.' or '='");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 
@@ -604,21 +644,19 @@ static enum parse_state sfhlog_config_parse_section_logger(struct sfhlog_config_
 							char* identifier = sfhlog_config_token_to_string(&token);
 							parent->severity = sfhlog_config_parse_severity(identifier);
 							free(identifier);
-							state = PARSE_SUBSTATE_DONE;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 
 						default: {
-							error_callback(line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected IDENTIFIER");
-							parent_state = PARSE_STATE_ERROR;
-							state = PARSE_SUBSTATE_DONE;
+							error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected IDENTIFIER");
+							parse_state->state = PARSE_STATE_ERROR;
+							parse_substate = PARSE_SUBSTATE_DONE;
 						} break;
 					}
 				} break;
 			}
 		}
 	}
-
-	return parent_state;
 }
 
 static void sfhlog_config_destroy_recursive(struct sfhlog_config_node* config)
@@ -638,7 +676,7 @@ static void sfhlog_config_destroy_recursive(struct sfhlog_config_node* config)
 static struct sfhlog_config_node* sfhlog_config_allocate_empty_entry()
 {
 	struct sfhlog_config_node* node = malloc(sizeof(struct sfhlog_config_node));
-	node->severity = 0;
+	node->severity = LOG_SEVERITY_NONE;
 	node->path = NULL;
 	node->children = NULL;
 
