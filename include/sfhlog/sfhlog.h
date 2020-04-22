@@ -58,6 +58,7 @@ typedef void (*sfhlog_sink_output_function_t)(
 
 typedef void (*sfhlog_sink_shutdown_function_t)(void* context);
 
+typedef void (*sfhlog_lock_function_t)(void* context);
 
 struct sfhlog_config_node
 {
@@ -68,14 +69,22 @@ struct sfhlog_config_node
 
 struct sfhlog_sink
 {
-	sfhlog_sink_output_function_t output_function;
-	sfhlog_sink_shutdown_function_t shutdown_function;
-	void* context;
+    sfhlog_sink_output_function_t output_function;
+    sfhlog_sink_shutdown_function_t shutdown_function;
+    void* context;
+};
+
+struct sfhlog_lock
+{
+    sfhlog_lock_function_t lock_function;
+    sfhlog_lock_function_t unlock_function;
+    void* context;
 };
 
 struct sfhlog_config
 {
 	struct sfhlog_sink* sinks;
+	struct sfhlog_lock lock;
 	struct sfhlog_config_node* root;
 };
 
@@ -89,6 +98,9 @@ static const struct sfhlog_logger* name = (const struct sfhlog_logger []) { \
 		} \
 	} \
 }
+
+#define SFHLOG_DECLARE_LOCK(_lock_function, _unlock_function, _context) \
+    { .lock_function = _lock_function, .unlock_function = _unlock_function, .context = _context}
 
 #define SFHLOG_DECLARE_SINK(_output_function, _shutdown_function, _context) \
 	{ .output_function = _output_function, .shutdown_function = _shutdown_function, .context = _context}
@@ -123,11 +135,13 @@ struct sfhlog_config _name = \
 #define SFHLOG_DECLARE_CONST_CONFIG( \
 	_name, \
 	_sinks, \
+	_lock, \
 	_root_severity, \
 	...) \
 const struct sfhlog_config _name = \
 { \
 	.sinks = _sinks, \
+	.lock = _lock, \
 	.root = (struct sfhlog_config_node*)(const struct sfhlog_config_node []) { \
         { \
             .path = "", \

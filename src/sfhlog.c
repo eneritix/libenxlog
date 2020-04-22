@@ -41,6 +41,8 @@ void sfhlog_log(
 	unsigned int line,
 	const char* fmt, ...)
 {
+    _sfhlog_config->lock.lock_function(_sfhlog_config->lock.context);
+
 	enum sfhlog_severity config_severity = _sfhlog_config->root->severity;
 	const struct sfhlog_config_node* config_node = _sfhlog_config->root->children;
 	const char** path = logger->path;
@@ -64,6 +66,7 @@ void sfhlog_log(
 	}
 
 	if (severity > config_severity) {
+	    _sfhlog_config->lock.unlock_function(_sfhlog_config->lock.context);
 		return;
 	}
 
@@ -76,5 +79,7 @@ void sfhlog_log(
 		va_end(args);
 		sink++;
 	}
+
+    _sfhlog_config->lock.unlock_function(_sfhlog_config->lock.context);
 
 }
