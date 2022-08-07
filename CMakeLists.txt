@@ -23,6 +23,7 @@
 ###############################################################################
 
 cmake_minimum_required(VERSION 3.0)
+project(libenxlog)
 
 add_library(sfhlog STATIC
     src/enxlog.c
@@ -37,11 +38,11 @@ add_library(sfhlog STATIC
 target_include_directories(sfhlog PUBLIC include)
 
 
-add_executable(test_basic test/test_basic.c)
+add_executable(test_basic test/test_basic.c test/test_utils.c)
 target_link_libraries(test_basic sfhlog)
 
-add_executable(test_file_sink test/test_file_sink.c)
+add_executable(test_file_sink test/test_file_sink.c test/test_utils.c)
 target_link_libraries(test_file_sink sfhlog)
 
-add_executable(test_config_parser test/test_config_parser.c)
+add_executable(test_config_parser test/test_config_parser.c test/test_utils.c)
 target_link_libraries(test_config_parser sfhlog)

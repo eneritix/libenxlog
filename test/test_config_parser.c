@@ -26,6 +26,8 @@
 
 #include <stdio.h>
 
+#include "test_utils.h"
+
 
 LOGGER_DECLARE(a, "a");
 LOGGER_DECLARE(b, "a", "b");
@@ -45,16 +47,17 @@ void error_callback(int line, int column, const char* message)
 int main(int argc, char* argv[])
 {
     if (argc < 2) {
-        //printf("usage: test_config_file <logger_config>\n");
-        //return 1;
+        printf("usage: test_config_file <logger_config>\n");
+        return 1;
     }
 
-    //struct enxlog_config* config = enxlog_config_parse(argv[1], NULL, error_callback);
-    struct enxlog_config* config = enxlog_config_parse("../test/configs/test_config_parser.conf", NULL, error_callback);
+    struct enxlog_config* config = enxlog_config_parse(argv[1], NULL, error_callback);
     if (config == NULL) {
         printf("Error parsing config file!\n");
         return -1;
     }
+
+    print_filter_tree(enxlog_config_get_filter_list(config));
 
     enxlog_init(
         enxlog_config_get_default_loglevel(config),
