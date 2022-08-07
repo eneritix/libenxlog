@@ -1,44 +1,29 @@
 /*
-	Copyright (c) 2018 Eneritix (Pty) Ltd
+    Copyright (c) 2022 Eneritix (Pty) Ltd
 
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
 
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
 
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
  */
 
-#include <sfhlog/sfhlog.h>
-#include <sfhlog/sinks/sfhlog_sink_stdout.h>
+#include <enx/log/enxlog.h>
+#include <enx/log/sinks/enxlog_sink_stdout.h>
+#include <stdlib.h>
 
-
-SFHLOG_DECLARE_CONST_CONFIG(
-	logger_config,
-	SFHLOG_DECLARE_CONST_SINK_LIST(
-			SFHLOG_DECLARE_SINK(sfhlog_sink_stdout, 0, 0)
-	),
-	LOG_SEVERITY_NONE,
-
-	SFHLOG_DECLARE_CONST_CONFIG_ENTRY("one", LOG_SEVERITY_ERROR,
-		SFHLOG_DECLARE_CONST_CONFIG_ENTRY("two", LOG_SEVERITY_WARN,
-			SFHLOG_DECLARE_CONST_CONFIG_ENTRY("three", LOG_SEVERITY_INFO,
-				SFHLOG_CONFIG_ENTRY_NOCHILDREN
-			)
-		)
-	)
-);
 
 
 LOGGER_DECLARE(logger_one, "one");
@@ -46,13 +31,29 @@ LOGGER_DECLARE(logger_two, "one", "two");
 LOGGER_DECLARE(logger_three, "one", "two", "three");
 
 
+enxlog_filter_list(the_thing)
+    enxlog_filter("one", LOGLEVEL_INFO)
+        enxlog_filter("two", LOGLEVEL_INFO)
+            enxlog_filter("three", LOGLEVEL_ERROR)
+            enxlog_endfilter()
+        enxlog_endfilter()
+    enxlog_endfilter()
+enxlog_end_filter_list()
+
+
+enxlog_sink_list(the_sinks)
+    enxlog_sink(0, &enxlog_sink_stdout, 0)
+enxlog_end_sink_list()
+
+    
+
 int main(void)
 {
-	sfhlog_init(&logger_config);
+    enxlog_init(LOGLEVEL_NONE, the_sinks, NULL, the_thing);
 
-	LOG_ERROR(logger_one, "This should print");
-	LOG_WARN(logger_two, "This should print");
-	LOG_INFO(logger_three, "This should print");
+    LOG_ERROR(logger_one, "This should print");
+    LOG_WARN(logger_two, "This should print");
+    LOG_INFO(logger_three, "This should print");
 
-	return 0;
+    return 0;
 }

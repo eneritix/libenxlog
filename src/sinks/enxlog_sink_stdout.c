@@ -20,48 +20,55 @@
     SOFTWARE.
  */
 
-#include <enx/log/enxlog.h>
 #include <enx/log/sinks/enxlog_sink_stdout.h>
-#include <enx/log/sinks/enxlog_sink_stdout_color.h>
-#include <enx/log/sinks/enxlog_sink_file.h>
+
+#include <stdio.h>
+#include <time.h>
+#include <sys/time.h>
 
 
-static struct enxlog_sink_file_context sink_file_context;
-
-
-enxlog_filter_list(filter_list)
-enxlog_end_filter_list()
-
-
-enxlog_sink_list(sink_list)
-    enxlog_sink(0, &enxlog_sink_stdout, 0)
-    enxlog_sink(0, &enxlog_sink_stdout_color, 0)
-    enxlog_sink(&sink_file_context, &enxlog_sink_file, 0)
-enxlog_end_sink_list()
-
-
-
-LOGGER_DECLARE(logger, "test");
-
-
-int main(int argc, char* argv[])
+void enxlog_sink_stdout(
+        void* context,
+        const struct enxlog_logger* logger,
+        enum enxlog_loglevel loglevel,
+        const char* func,
+        unsigned int line,
+        const char* fmt,
+        va_list ap)
 {
-    if (argc < 2) {
-        printf("usage: test_file_sink <output_file>\n");
-        return 1;
+
+    // Timestamp
+    struct timeval curTime;
+    gettimeofday(&curTime, NULL);
+    int milli = curTime.tv_usec / 1000;
+
+    struct tm* timeinfo;
+    timeinfo = localtime(&curTime.tv_sec);
+
+    char tag[64];
+    strftime(tag, sizeof(tag), "%Y-%m-%d %H:%M:%S", timeinfo);
+    printf("%s.%03d ", tag, milli);
+
+    // Severity
+    switch (loglevel) {
+        case LOGLEVEL_ERROR: printf("-- ERROR -- "); break;
+        case LOGLEVEL_WARN: printf("-- WARN  -- "); break;
+        case LOGLEVEL_INFO: printf("-- INFO  -- "); break;
+        case LOGLEVEL_DEBUG: printf("-- DEBUG -- "); break;
     }
 
-    if (enxlog_sink_file_init(&sink_file_context, argv[1]) == -1) {
-        printf("Could not open output file\n");
-        return 1;
+
+    // Path
+    const char** path = logger->path;
+    while (*path) {
+        printf("%s::", *path);
+        path++;
     }
 
-    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_list);
+    // Function and line
+    printf( "%s:%u: ", func, line);
 
-    LOG_ERROR(logger, "This is an error");
-    LOG_WARN(logger, "This is a warning");
-    LOG_INFO(logger, "This is info");
-    LOG_DEBUG(logger, "This is debug data");
-
-    return 0;
+    // Message
+    vprintf(fmt, ap);
+    printf("\n");
 }

@@ -25,22 +25,20 @@
 cmake_minimum_required(VERSION 3.0)
 
 add_library(sfhlog STATIC
-    src/sfhlog.c
-    src/sinks/sfhlog_sink_stdout.c
-    src/sinks/sfhlog_sink_stdout_color.c
-    src/sinks/sfhlog_sink_file.c
-    src/config/sfhlog_config_sink_factory.c
-    src/config/sfhlog_config_sink_parameters.c
-    src/config/sfhlog_config_parser.c)
+    src/enxlog.c
+    src/sinks/enxlog_sink_stdout.c
+    src/sinks/enxlog_sink_stdout_color.c
+    src/sinks/enxlog_sink_file.c
+    src/config/enxlog_config_sink_factory.c
+    src/config/enxlog_config_sink_parameters.c
+    src/config/enxlog_config_parser.c
+    )
 
 target_include_directories(sfhlog PUBLIC include)
 
 
 add_executable(test_basic test/test_basic.c)
 target_link_libraries(test_basic sfhlog)
-
-add_executable(test_basic_non_const test/test_basic_non_const.c)
-target_link_libraries(test_basic_non_const sfhlog)
 
 add_executable(test_file_sink test/test_file_sink.c)
 target_link_libraries(test_file_sink sfhlog)

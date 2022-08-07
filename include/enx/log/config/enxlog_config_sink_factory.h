@@ -20,48 +20,26 @@
     SOFTWARE.
  */
 
+#ifndef ENXLOG_CONFIG_SINK_FACTORY_H
+#define ENXLOG_CONFIG_SINK_FACTORY_H
+
 #include <enx/log/enxlog.h>
-#include <enx/log/sinks/enxlog_sink_stdout.h>
-#include <enx/log/sinks/enxlog_sink_stdout_color.h>
-#include <enx/log/sinks/enxlog_sink_file.h>
+#include <enx/log/config/enxlog_config_parser.h>
+#include <enx/log/config/enxlog_config_sink_parameters.h>
+
+#include <stdbool.h>
+#include <sys/cdefs.h>
+
+__BEGIN_DECLS
 
 
-static struct enxlog_sink_file_context sink_file_context;
+bool enxlog_config_sink_factory_create_sink(
+    struct enxlog_sink* sink,
+    const struct enxlog_config_sink_parameters* parameters,
+    enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
+    enxlog_config_parser_error_callback_t error_callback);
 
 
-enxlog_filter_list(filter_list)
-enxlog_end_filter_list()
+__END_DECLS
 
-
-enxlog_sink_list(sink_list)
-    enxlog_sink(0, &enxlog_sink_stdout, 0)
-    enxlog_sink(0, &enxlog_sink_stdout_color, 0)
-    enxlog_sink(&sink_file_context, &enxlog_sink_file, 0)
-enxlog_end_sink_list()
-
-
-
-LOGGER_DECLARE(logger, "test");
-
-
-int main(int argc, char* argv[])
-{
-    if (argc < 2) {
-        printf("usage: test_file_sink <output_file>\n");
-        return 1;
-    }
-
-    if (enxlog_sink_file_init(&sink_file_context, argv[1]) == -1) {
-        printf("Could not open output file\n");
-        return 1;
-    }
-
-    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_list);
-
-    LOG_ERROR(logger, "This is an error");
-    LOG_WARN(logger, "This is a warning");
-    LOG_INFO(logger, "This is info");
-    LOG_DEBUG(logger, "This is debug data");
-
-    return 0;
-}
+#endif

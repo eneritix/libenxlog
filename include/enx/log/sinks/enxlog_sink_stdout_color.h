@@ -20,48 +20,27 @@
     SOFTWARE.
  */
 
+#ifndef ENXLOG_SINK_STDOUT_COLOR_H
+#define ENXLOG_SINK_STDOUT_COLOR_H
+
 #include <enx/log/enxlog.h>
-#include <enx/log/sinks/enxlog_sink_stdout.h>
-#include <enx/log/sinks/enxlog_sink_stdout_color.h>
-#include <enx/log/sinks/enxlog_sink_file.h>
+
+#include <sys/cdefs.h>
 
 
-static struct enxlog_sink_file_context sink_file_context;
+__BEGIN_DECLS
 
 
-enxlog_filter_list(filter_list)
-enxlog_end_filter_list()
+void enxlog_sink_stdout_color(
+        void* context,
+        const struct enxlog_logger* logger,
+        enum enxlog_loglevel loglevel,
+        const char* func,
+        unsigned int line,
+        const char* fmt,
+        va_list ap);
 
 
-enxlog_sink_list(sink_list)
-    enxlog_sink(0, &enxlog_sink_stdout, 0)
-    enxlog_sink(0, &enxlog_sink_stdout_color, 0)
-    enxlog_sink(&sink_file_context, &enxlog_sink_file, 0)
-enxlog_end_sink_list()
+__END_DECLS
 
-
-
-LOGGER_DECLARE(logger, "test");
-
-
-int main(int argc, char* argv[])
-{
-    if (argc < 2) {
-        printf("usage: test_file_sink <output_file>\n");
-        return 1;
-    }
-
-    if (enxlog_sink_file_init(&sink_file_context, argv[1]) == -1) {
-        printf("Could not open output file\n");
-        return 1;
-    }
-
-    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_list);
-
-    LOG_ERROR(logger, "This is an error");
-    LOG_WARN(logger, "This is a warning");
-    LOG_INFO(logger, "This is info");
-    LOG_DEBUG(logger, "This is debug data");
-
-    return 0;
-}
+#endif
