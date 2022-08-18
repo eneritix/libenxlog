@@ -111,7 +111,7 @@ const struct enxlog_filter_entry* _name =                   \
  * 
  */
 #define enxlog_end_filter_list()                            \
-        {0}                                                 \
+        { .path = 0 }                                       \
     };
 
 /**
@@ -130,7 +130,7 @@ const struct enxlog_filter_entry* _name =                   \
  * 
  */
 #define enxlog_endfilter()                                  \
-            {0}                                             \
+            { .path = 0 }                                   \
         }                                                   \
     },
 
@@ -148,7 +148,7 @@ const struct enxlog_sink *_name =                           \
  * 
  */
 #define enxlog_end_sink_list()                              \
-    { 0 }                                                   \
+    { .fn_output = 0 }                                      \
 };
 
 /**
@@ -157,9 +157,9 @@ const struct enxlog_sink *_name =                           \
  */
 #define enxlog_sink(_context, _fn_output, _fn_shutdown)     \
     {                                                       \
-        .context = _context,                                \
         .fn_output = _fn_output,                            \
-        .fn_shutdown = _fn_shutdown                         \
+        .fn_shutdown = _fn_shutdown,                        \
+        .context = _context                                 \
     },
 
 /**
