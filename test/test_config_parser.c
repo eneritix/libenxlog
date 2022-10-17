@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
         enxlog_config_get_sinks(config),
         NULL,
         enxlog_config_get_filter_list(config));
-        
+
     LOG_DEBUG(a, "This should not display");
     LOG_DEBUG(b, "This should not display");
     LOG_DEBUG(c, "This should display");

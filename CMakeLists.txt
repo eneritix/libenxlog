@@ -25,18 +25,37 @@
 cmake_minimum_required(VERSION 3.0)
 project(libenxlog)
 
-add_library(enxlog STATIC
+add_subdirectory(../libenxtxt libenxtxt EXCLUDE_FROM_ALL)
+
+option(LIBENXLOG_CONFIG_PARSER "Include runtime configuration parser" ON)
+
+set(enxlog_SOURCES
     src/enxlog.c
     src/sinks/enxlog_sink_stdout.c
     src/sinks/enxlog_sink_stdout_color.c
     src/sinks/enxlog_sink_file.c
-    src/config/enxlog_config_sink_factory.c
-    src/config/enxlog_config_sink_parameters.c
-    src/config/enxlog_config_parser.c
     )
+
+if (LIBENXLOG_CONFIG_PARSER)
+    set(enxlog_SOURCES
+        ${enxlog_SOURCES}
+        src/config/enxlog_config_sink_factory.c
+        src/config/enxlog_config_sink_parameters.c
+        src/config/enxlog_config_parser.c
+        src/config/enxlog_config_filter_list.c
+        src/config/enxlog_config_sink_list.c
+    )
+endif(LIBENXLOG_CONFIG_PARSER)
+
+add_library(enxlog STATIC
+    ${enxlog_SOURCES}
+)
 
 target_include_directories(enxlog PUBLIC include)
 
+if (LIBENXLOG_CONFIG_PARSER)
+    target_link_libraries(enxlog PUBLIC enxtxt yaml)
+endif(LIBENXLOG_CONFIG_PARSER)
 
 add_executable(test_basic test/test_basic.c test/test_utils.c)
 target_link_libraries(test_basic enxlog)
@@ -44,5 +63,7 @@ target_link_libraries(test_basic enxlog)
 add_executable(test_file_sink test/test_file_sink.c test/test_utils.c)
 target_link_libraries(test_file_sink enxlog)
 
-add_executable(test_config_parser test/test_config_parser.c test/test_utils.c)
-target_link_libraries(test_config_parser enxlog)
+if (LIBENXLOG_CONFIG_PARSER)
+    add_executable(test_config_parser test/test_config_parser.c test/test_utils.c)
+    target_link_libraries(test_config_parser enxlog)
+endif(LIBENXLOG_CONFIG_PARSER)

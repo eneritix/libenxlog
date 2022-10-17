@@ -20,54 +20,47 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_SINK_PARAMETERS_H
-#define ENXLOG_CONFIG_SINK_PARAMETERS_H
+#include "enxlog_config_sink_list.h"
 
 #include <stdlib.h>
-#include <sys/cdefs.h>
+#include <string.h>
 
-__BEGIN_DECLS
-
-
-struct enxlog_config_sink_parameter
+struct enxlog_config_sink_list *enxlog_config_sink_list_create()
 {
-    const char* key;
-    const char* value;
-    struct enxlog_config_sink_parameter *next;
-};
+    struct enxlog_config_sink_list *result = malloc(sizeof(struct enxlog_config_sink_list));
 
-struct enxlog_config_sink_parameters
+    result->sink_count = 0;
+    result->sinks = NULL;
+
+    return result;
+}
+
+void enxlog_config_sink_list_destroy(struct enxlog_config_sink_list *sink_list)
 {
-    struct enxlog_config_sink_parameter *head;
-    struct enxlog_config_sink_parameter *tail;
-};
+    size_t i = 0;
 
-/**
- * @brief Creates a sink parameters object
- *
- */
-struct enxlog_config_sink_parameters* enxlog_config_sink_parameters_create();
+    for (i=0; i < sink_list->sink_count; ++i) {
+        if (sink_list->sinks[i].fn_shutdown) {
+            sink_list->sinks[i].fn_shutdown(sink_list->sinks[i].context);
+        }
+    }
 
-/**
- * @brief Destroys a sink parameters object
- *
- */
-void enxlog_config_sink_parameters_destroy(struct enxlog_config_sink_parameters* parameters);
+    free(sink_list->sinks);
+    free(sink_list);
+}
 
-/**
- * @brief Adds a parameter to the parameters object
- *
- */
-void enxlog_config_sink_parameters_add(struct enxlog_config_sink_parameters* parameters, const char* key, const char* value);
+struct enxlog_sink *enxlog_config_sink_list_append(struct enxlog_config_sink_list *sink_list)
+{
+    static struct enxlog_sink * result = NULL;
 
-/**
- * @brief Finds a parameter in the parameters object
- * @returns NULL if the key is not found
- *
- */
-const char* enxlog_config_sink_parameters_find(const struct enxlog_config_sink_parameters* parameters, const char* key);
+    sink_list->sink_count++;
+    sink_list->sinks = realloc(sink_list->sinks, sizeof(struct enxlog_sink) * sink_list->sink_count);
 
+    result = &sink_list->sinks[sink_list->sink_count - 1];
 
-__END_DECLS
+    result->context = NULL;
+    result->fn_output = NULL;
+    result->fn_shutdown = NULL;
 
-#endif
+    return result;
+}

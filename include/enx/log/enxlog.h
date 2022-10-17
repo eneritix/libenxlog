@@ -32,7 +32,7 @@ __BEGIN_DECLS
 
 /**
  * @brief Loglevel enumeration
- * 
+ *
  */
 enum enxlog_loglevel
 {
@@ -45,7 +45,7 @@ enum enxlog_loglevel
 
 /**
  * @brief Logger
- * 
+ *
  */
 struct enxlog_logger
 {
@@ -54,7 +54,7 @@ struct enxlog_logger
 
 /**
  * @brief Filter entry
- * 
+ *
  */
 struct enxlog_filter_entry
 {
@@ -65,7 +65,7 @@ struct enxlog_filter_entry
 
 /**
  * @brief Sink
- * 
+ *
  */
 struct enxlog_sink
 {
@@ -85,7 +85,7 @@ struct enxlog_sink
 
 /**
  * @brief Lock
- * 
+ *
  */
 struct enxlog_lock
 {
@@ -98,7 +98,7 @@ struct enxlog_lock
 
 /**
  * @brief Start a filter list
- * 
+ *
  */
 #define enxlog_filter_list(_name)                           \
 const struct enxlog_filter_entry* _name =                   \
@@ -108,7 +108,7 @@ const struct enxlog_filter_entry* _name =                   \
 
 /**
  * @brief End a filter list
- * 
+ *
  */
 #define enxlog_end_filter_list()                            \
         { .path = 0 }                                       \
@@ -116,7 +116,7 @@ const struct enxlog_filter_entry* _name =                   \
 
 /**
  * @brief Start a filter entry
- * 
+ *
  */
 #define enxlog_filter(_path, _loglevel)                     \
     {                                                       \
@@ -127,7 +127,7 @@ const struct enxlog_filter_entry* _name =                   \
 
 /**
  * @brief End a filter entry
- * 
+ *
  */
 #define enxlog_endfilter()                                  \
             { .path = 0 }                                   \
@@ -136,7 +136,7 @@ const struct enxlog_filter_entry* _name =                   \
 
 /**
  * @brief Start a sink list
- * 
+ *
  */
 #define enxlog_sink_list(_name)                             \
 const struct enxlog_sink *_name =                           \
@@ -145,7 +145,7 @@ const struct enxlog_sink *_name =                           \
 
 /**
  * @brief End a sink list
- * 
+ *
  */
 #define enxlog_end_sink_list()                              \
     { .fn_output = 0 }                                      \
@@ -153,7 +153,7 @@ const struct enxlog_sink *_name =                           \
 
 /**
  * @brief Declare a sink
- * 
+ *
  */
 #define enxlog_sink(_context, _fn_output, _fn_shutdown)     \
     {                                                       \
@@ -164,7 +164,7 @@ const struct enxlog_sink *_name =                           \
 
 /**
  * @brief Declare a lock
- * 
+ *
  */
 #define enxlog_lock(_name, _context, _fn_lock, _fn_unlock)  \
 const struct enxlog_lock *_name =                           \
@@ -179,7 +179,7 @@ const struct enxlog_lock *_name =                           \
 
 /**
  * @brief Declare a logger
- * 
+ *
  */
 #define LOGGER_DECLARE(name, ...) \
 static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
@@ -194,7 +194,7 @@ static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
 
 /**
  * @brief Initialize the logging library
- * 
+ *
  * @param default_loglevel The default loglevel
  * @param sinks A list of sinks
  * @param lock The lock to use, or NULL if locking is not required
@@ -208,7 +208,7 @@ void enxlog_init(
 
 /**
  * @brief Log function
- * 
+ *
  * This function is called by the log macros and should not be called directly
  */
 void enxlog_log(

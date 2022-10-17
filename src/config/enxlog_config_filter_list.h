@@ -20,53 +20,18 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_SINK_PARAMETERS_H
-#define ENXLOG_CONFIG_SINK_PARAMETERS_H
+#ifndef ENXLOG_CONFIG_FILTER_LIST_H
+#define ENXLOG_CONFIG_FILTER_LIST_H
 
-#include <stdlib.h>
-#include <sys/cdefs.h>
+#include <enx/log/enxlog.h>
 
 __BEGIN_DECLS
 
 
-struct enxlog_config_sink_parameter
-{
-    const char* key;
-    const char* value;
-    struct enxlog_config_sink_parameter *next;
-};
-
-struct enxlog_config_sink_parameters
-{
-    struct enxlog_config_sink_parameter *head;
-    struct enxlog_config_sink_parameter *tail;
-};
-
-/**
- * @brief Creates a sink parameters object
- *
- */
-struct enxlog_config_sink_parameters* enxlog_config_sink_parameters_create();
-
-/**
- * @brief Destroys a sink parameters object
- *
- */
-void enxlog_config_sink_parameters_destroy(struct enxlog_config_sink_parameters* parameters);
-
-/**
- * @brief Adds a parameter to the parameters object
- *
- */
-void enxlog_config_sink_parameters_add(struct enxlog_config_sink_parameters* parameters, const char* key, const char* value);
-
-/**
- * @brief Finds a parameter in the parameters object
- * @returns NULL if the key is not found
- *
- */
-const char* enxlog_config_sink_parameters_find(const struct enxlog_config_sink_parameters* parameters, const char* key);
-
+struct enxlog_filter_entry *enxlog_config_filter_list_create();
+void enxlog_config_filter_list_destroy(const struct enxlog_filter_entry *filter_list);
+struct enxlog_filter_entry *enxlog_config_filter_list_find_entry(const struct enxlog_filter_entry *parent, const char *path);
+struct enxlog_filter_entry* enxlog_config_filter_list_append_entry(struct enxlog_filter_entry *parent, const char *path, enum enxlog_loglevel loglevel);
 
 __END_DECLS
 

@@ -28,84 +28,55 @@
 struct enxlog_config_sink_parameters* enxlog_config_sink_parameters_create()
 {
     struct enxlog_config_sink_parameters* parameters = malloc(sizeof(struct enxlog_config_sink_parameters));
-
-    parameters->size = 4;
-    parameters->count = 0;
-    parameters->grow = 4;
-
-    parameters->parameters = malloc(sizeof(struct enxlog_config_sink_parameter) * parameters->size);
+    parameters->head = NULL;
+    parameters->tail = NULL;
 
     return parameters;
 }
 
 void enxlog_config_sink_parameters_destroy(struct enxlog_config_sink_parameters* parameters)
 {
-    for (size_t i=0; i < parameters->count; ++i) {
-        free(parameters->parameters[i].name);
-        free(parameters->parameters[i].value);
+    struct enxlog_config_sink_parameter *parameter = parameters->head;
+    while (parameter) {
+        struct enxlog_config_sink_parameter *to_free = parameter;
+        parameter = parameter->next;
+
+        free((void *)to_free->key);
+        free((void *)to_free->value);
+        free(to_free);
     }
 
-    free(parameters->parameters);
     free(parameters);
 }
 
-void enxlog_config_sink_parameters_add(struct enxlog_config_sink_parameters* parameters, const char* name, const char* value)
+void enxlog_config_sink_parameters_add(struct enxlog_config_sink_parameters* parameters, const char* key, const char* value)
 {
-    if (parameters->count == parameters->size) {
-        parameters->size += parameters->grow;
-        parameters->parameters = realloc(parameters->parameters, sizeof(struct enxlog_config_sink_parameter) * parameters->size);
+    struct enxlog_config_sink_parameter *parameter = malloc(sizeof(struct enxlog_config_sink_parameter));
+    parameter->key = strdup(key);
+    parameter->value = strdup(value);
+    parameter->next = NULL;
+
+    if (parameters->tail == NULL) {
+        parameters->head = parameter;
+        parameters->tail = parameter;
+    } else {
+        parameters->tail->next = parameter;
+        parameters->tail = parameter;
     }
-
-    parameters->parameters[parameters->count].name = strdup(name);
-    parameters->parameters[parameters->count].value = strdup(value);
-
-    parameters->count++;
 }
 
-const char* enxlog_config_sink_parameters_find(const struct enxlog_config_sink_parameters* parameters, const char* name)
+const char *enxlog_config_sink_parameters_find(const struct enxlog_config_sink_parameters* parameters, const char* key)
 {
-    for (size_t i=0; i < parameters->count; ++i) {
-        if (strcmp(parameters->parameters[i].name, name) == 0) {
-            return parameters->parameters[i].value;
+    struct enxlog_config_sink_parameter *parameter = parameters->head;
+    const char *result = NULL;
+
+    while (parameter && !result) {
+        if (strcmp(parameter->key, key) == 0) {
+            result = parameter->value;
         }
+
+        parameter = parameter->next;
     }
 
-    return NULL;
-}
-
-void enxlog_config_sink_parameter_list_init(struct enxlog_config_sink_parameter_list* list)
-{
-    list->size = 4;
-    list->count = 0;
-    list->grow = 4;
-    list->list = malloc(sizeof(struct shflog_config_sink_parameters*) * list->size);
-}
-
-void enxlog_config_sink_parameter_list_destroy(struct enxlog_config_sink_parameter_list* list)
-{
-    for (size_t i=0; i < list->count; ++i) {
-        enxlog_config_sink_parameters_destroy(list->list[i]);
-    }
-
-    free(list->list);
-}
-
-void enxlog_config_sink_parameter_list_add(struct enxlog_config_sink_parameter_list* list, struct enxlog_config_sink_parameters* parameters)
-{
-    if (list->count == list->size) {
-        list->size = list->size + list->grow;
-        list->list = realloc(list->list, sizeof(struct shflog_config_sink_parameters*) * list->size);
-    }
-
-    list->list[list->count++] = parameters;
-}
-
-size_t enxlog_config_sink_parameter_list_get_count(struct enxlog_config_sink_parameter_list* list)
-{
-    return list->count;
-}
-
-struct enxlog_config_sink_parameters* enxlog_config_sink_parameter_list_get_at(struct enxlog_config_sink_parameter_list* list, size_t index)
-{
-    return list->list[index];
+    return result;
 }

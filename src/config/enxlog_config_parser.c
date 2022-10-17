@@ -23,6 +23,10 @@
 #include <enx/log/config/enxlog_config_parser.h>
 #include <enx/log/config/enxlog_config_sink_parameters.h>
 #include <enx/log/config/enxlog_config_sink_factory.h>
+#include <enx/txt/tokenizer.h>
+
+#include "enxlog_config_filter_list.h"
+#include "enxlog_config_sink_list.h"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -30,230 +34,95 @@
 #include <stdbool.h>
 #include <string.h>
 
+#include <yaml.h>
+
 
 struct enxlog_config
 {
-    struct enxlog_sink* sinks;
+    struct enxlog_config_sink_list *sink_list;
     struct enxlog_filter_entry *filter_list;
-};
-
-enum token_type
-{
-    TOKEN_IDENTIFIER,
-    TOKEN_STRING,
-    TOKEN_SEPARATOR,
-    TOKEN_ASSIGNMENT,
-    TOKEN_SECTION,
-    TOKEN_COMMENT
-};
-
-enum parse_state_identifier
-{
-    PARSE_STATE_SECTION_NONE,
-    PARSE_STATE_SECTION_SINK,
-    PARSE_STATE_SECTION_LOGGER,
-    PARSE_STATE_ERROR
+    enxlog_config_parser_sink_creation_callback_t sink_creation_callback;
+    enxlog_config_parser_error_callback_t error_callback;
+    enum enxlog_loglevel default_loglevel;
 };
 
 
-struct enxlog_config_tokenizer
-{
-    const char* input;
-    const char* ptr;
-};
-
-struct enxlog_config_tokenizer_token
-{
-    int token_type;
-    const char* start;
-    const char* end;
-};
-
-
-struct enxlog_config_parse_state
-{
-    enum parse_state_identifier state;
-
-    struct enxlog_config *config;
-    struct enxlog_config_sink_parameter_list sink_parameter_list;
-    struct enxlog_config_sink_parameters* sink_parameters;
-    int line_number;
-};
-
-
-static void enxlog_filter_destroy_recursive(const struct enxlog_filter_entry* filter_entry);
-
-static struct enxlog_config_parse_state* enxlog_config_create_parse_state();
-static void enxlog_config_destroy_parse_state(struct enxlog_config_parse_state* parse_state);
-
-static void enxlog_config_parse_section_none(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line,
-    enxlog_config_parser_error_callback_t error_callback);
-
-static void enxlog_config_parse_section_sink(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line,
-    enxlog_config_parser_error_callback_t error_callback);
-
-static void enxlog_config_parse_section_logger(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line,
-    enxlog_config_parser_error_callback_t error_callback);
-
-static struct enxlog_filter_entry* enxlog_filter_allocate_empty_entry();
-static struct enxlog_filter_entry* enxlog_filter_find_entry(struct enxlog_filter_entry* parent, const char* path);
-static struct enxlog_filter_entry* enxlog_filter_append_child_entry(struct enxlog_filter_entry* parent, const char* path, enum enxlog_loglevel loglevel);
+static bool enxlog_config_parse_root(struct enxlog_config *config, yaml_parser_t *parser);
+static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_parser_t *parser);
+static bool enxlog_config_parse_section_options(struct enxlog_config *config, yaml_parser_t *parser);
+static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_parser_t *parser);
+static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yaml_parser_t *parser);
+static void enxlog_config_append_filter(
+    const struct enxlog_filter_entry *filter_list,
+    const char *path,
+    const char *level);
 static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name);
-
-static void enxlog_config_tokenizer_init(
-    struct enxlog_config_tokenizer* tokenizer,
-    const char* input);
-
-static int enxlog_config_tokenizer_get_next_token(
-    int line,
-    struct enxlog_config_tokenizer* tokenizer,
-    struct enxlog_config_tokenizer_token* token,
-    enxlog_config_parser_error_callback_t error_callback);
-
-static char* enxlog_config_token_to_string(const struct enxlog_config_tokenizer_token* token);
+void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value);
 
 
-struct enxlog_config* enxlog_config_parse(
+
+struct enxlog_config *enxlog_config_parse(
     const char* path,
     enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
     enxlog_config_parser_error_callback_t error_callback)
 {
-    char* line = NULL;
-    size_t line_length = 0;
+    struct enxlog_config *config = (struct enxlog_config *)malloc(sizeof(struct enxlog_config));
+    yaml_parser_t parser;
 
+    config->sink_list = enxlog_config_sink_list_create();
+    config->filter_list = enxlog_config_filter_list_create();
+    config->sink_creation_callback = sink_creation_callback;
+    config->error_callback = error_callback;
+    config->default_loglevel = LOGLEVEL_NONE;
 
-    // Open the input file
-    FILE* file = fopen(path, "r");
+    FILE *file = fopen(path, "r");
     if (file == NULL) {
-        return NULL;
+        goto error_fopen;
     }
 
-    // Create the parse state
-    struct enxlog_config_parse_state* parse_state = enxlog_config_create_parse_state();
-
-    // Process lines
-    while (getline(&line, &line_length, file) != -1) {
-
-        switch (parse_state->state) {
-
-            case PARSE_STATE_SECTION_NONE: {
-                enxlog_config_parse_section_none(parse_state, line, error_callback);
-            } break;
-
-            case PARSE_STATE_SECTION_SINK: {
-                enxlog_config_parse_section_sink(parse_state, line, error_callback);
-            } break;
-
-            case PARSE_STATE_SECTION_LOGGER: {
-                enxlog_config_parse_section_logger(parse_state, line, error_callback);
-            } break;
-
-            default: break;
-        }
-
-        free(line);
-        line_length = 0;
-        parse_state->line_number++;
-
-        if (parse_state->state == PARSE_STATE_ERROR) {
-            break;
-        }
+    yaml_parser_initialize(&parser);
+    yaml_parser_set_input_file(&parser, file);
+    if (!enxlog_config_parse_root(config, &parser)) {
+        goto error_enxlog_config_parse_root;
     }
 
-    // Append dangling sink parameter
-    if (parse_state->sink_parameters) {
-        enxlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
-        parse_state->sink_parameters = NULL;
-    }
+    // Terminate the sink list
+    enxlog_config_sink_list_append(config->sink_list);
 
     // Close the file
     fclose(file);
 
-
-    // If a parse error has occurred, destroy the parse state and exit
-    if (parse_state->state == PARSE_STATE_ERROR) {
-        enxlog_config_destroy_parse_state(parse_state);
-        return NULL;
-    }
-
-
-    // Attempt to create the sinks
-    size_t sink_count = enxlog_config_sink_parameter_list_get_count(&parse_state->sink_parameter_list);
-    parse_state->config->sinks = malloc(sizeof(struct enxlog_sink) * (sink_count + 1));
-    parse_state->config->sinks[sink_count].fn_output = NULL;
-    parse_state->config->sinks[sink_count].fn_shutdown = NULL;
-    parse_state->config->sinks[sink_count].context = NULL;
-
-    bool sinks_created = true;
-
-    for (size_t i=0; i < sink_count; ++i) {
-        struct enxlog_config_sink_parameters* parameters = enxlog_config_sink_parameter_list_get_at(&parse_state->sink_parameter_list, i);
-        if (!enxlog_config_sink_factory_create_sink(&parse_state->config->sinks[i], parameters, sink_creation_callback, error_callback)) {
-
-            // Destroy the created sinks
-            for (size_t j=0; j < i; ++j) {
-                if (parse_state->config->sinks[j].fn_shutdown) {
-                    parse_state->config->sinks[j].fn_shutdown(parse_state->config->sinks[j].context);
-                }
-            }
-            sinks_created = false;
-            break;
-        }
-    }
-
-    // If any sink creation failed, destroy the parse state and exit
-    if (!sinks_created) {
-        enxlog_config_destroy_parse_state(parse_state);
-        return NULL;
-    }
-
-
-    // Detach the config, destroy the parse state, and exit
-    struct enxlog_config* config = parse_state->config;
-    parse_state->config = NULL;
-    enxlog_config_destroy_parse_state(parse_state);
+    // Destroy the parser
+    yaml_parser_delete(&parser);
 
     return config;
+
+error_enxlog_config_parse_root:
+
+    yaml_parser_delete(&parser);
+    fclose(file);
+
+error_fopen:
+    enxlog_config_destroy(config);
+
+    return NULL;
 }
 
 void enxlog_config_destroy(struct enxlog_config* config)
 {
-    // Destroy the filter list
-    enxlog_filter_destroy_recursive(config->filter_list);
-    free(config->filter_list);
-
-    // Free the sinks
-    struct enxlog_sink* sink = config->sinks;
-    while (sink->fn_output) {
-        if (sink->fn_shutdown) {
-            sink->fn_shutdown(sink->context);
-        }
-        sink++;
-    }
-
-    // Free the sink list
-    if (config->sinks) {
-        free(config->sinks);
-    }
-
-    // Free the configuration object
+    enxlog_config_filter_list_destroy(config->filter_list);
+    enxlog_config_sink_list_destroy(config->sink_list);
     free(config);
 }
 
 enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* config)
 {
-    return config->filter_list->loglevel;
+    return config->default_loglevel;
 }
 
 const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config)
 {
-    return config->sinks;
+    return config->sink_list->sinks;
 }
 
 const struct enxlog_filter_entry *enxlog_config_get_filter_list(struct enxlog_config* config)
@@ -261,481 +130,430 @@ const struct enxlog_filter_entry *enxlog_config_get_filter_list(struct enxlog_co
     return config->filter_list->children;
 }
 
-static struct enxlog_config_parse_state* enxlog_config_create_parse_state()
+static bool enxlog_config_parse_root(struct enxlog_config *config, yaml_parser_t *parser)
 {
-    struct enxlog_config_parse_state *parse_state = malloc(sizeof(struct enxlog_config_parse_state));
+    yaml_event_t event;
+    enum {
+        PARSE_STATE_START_STREAM,
+        PARSE_STATE_START_DOCUMENT,
+        PARSE_STATE_START_MAPPING,
+        PARSE_STATE_SUCCESS,
+        PARSE_STATE_ERROR
+    } parse_state;
 
-    parse_state->config = malloc(sizeof(struct enxlog_config));
+    parse_state = PARSE_STATE_START_STREAM;
 
-    parse_state->config->filter_list = (struct enxlog_filter_entry *)malloc(sizeof(struct enxlog_filter_entry));
-    parse_state->config->filter_list->loglevel = LOGLEVEL_NONE;
-    parse_state->config->filter_list->path = strdup("");
-    parse_state->config->filter_list->children = enxlog_filter_allocate_empty_entry();
+    while ((parse_state != PARSE_STATE_SUCCESS) && (parse_state != PARSE_STATE_ERROR)) {
+        if (yaml_parser_parse(parser, &event)) {
 
-    parse_state->state = PARSE_STATE_SECTION_NONE;
-    parse_state->line_number = 0;
-
-    enxlog_config_sink_parameter_list_init(&parse_state->sink_parameter_list);
-    parse_state->sink_parameters = NULL;
-
-    return parse_state;
-}
-
-static void enxlog_config_destroy_parse_state(struct enxlog_config_parse_state* parse_state)
-{
-    // Destroy the sink parameter list
-    enxlog_config_sink_parameter_list_destroy(&parse_state->sink_parameter_list);
-
-    // Destroy any dangling sink parameters
-    if (parse_state->sink_parameters) {
-        enxlog_config_sink_parameters_destroy(parse_state->sink_parameters);
-    }
-
-    // Destroy the config
-    if (parse_state->config) {
-        enxlog_config_destroy(parse_state->config);
-    }
-
-    // Free the parse state
-    free(parse_state);
-}
-
-static void enxlog_config_parse_section_none(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line,
-    enxlog_config_parser_error_callback_t error_callback)
-{
-
-    struct enxlog_config_tokenizer tokenizer;
-    enxlog_config_tokenizer_init(&tokenizer, line);
-
-    struct enxlog_config_tokenizer_token token;
-    int result = enxlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
-
-    if (result == -1) {
-        parse_state->state = PARSE_STATE_ERROR;
-
-    } else if (result == 0) {
-        // Ignore empty line
-
-    } else {
-
-        switch (token.token_type) {
-
-            case TOKEN_SECTION: {
-
-                char *name = enxlog_config_token_to_string(&token);
-                if (strcmp(name, "sink") == 0) {
-                    free(name);
-
-                    if (parse_state->sink_parameters) {
-                        enxlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
+            switch (parse_state) {
+                case PARSE_STATE_START_STREAM: {
+                    switch (event.type) {
+                        case YAML_STREAM_START_EVENT: {
+                            parse_state = PARSE_STATE_START_DOCUMENT;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
                     }
-
-                    parse_state->sink_parameters = enxlog_config_sink_parameters_create();
-
-                    parse_state->state = PARSE_STATE_SECTION_SINK;
-
-                } else if (strcmp(name, "logger") == 0) {
-                    free(name);
-                    parse_state->state = PARSE_STATE_SECTION_LOGGER;
-
-                } else {
-                    error_callback(parse_state->line_number, (int) (tokenizer.ptr - tokenizer.input), "Unknown section");
-                    parse_state->state = PARSE_STATE_ERROR;
-                }
-            } break;
-
-            case TOKEN_COMMENT: break;
-
-            default: {
-                error_callback(parse_state->line_number, (int) (tokenizer.ptr - tokenizer.input), "Expected SECTION");
-                parse_state->state = PARSE_STATE_ERROR;
-            } break;
-        }
-    }
-}
-
-static void enxlog_config_parse_section_sink(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line, enxlog_config_parser_error_callback_t error_callback)
-{
-    enum parse_substate
-    {
-        PARSE_SUBSTATE_START,
-        PARSE_SUBSTATE_NAME,
-        PARSE_SUBSTATE_ASSIGNMENT,
-        PARSE_SUBSTATE_VALUE,
-        PARSE_SUBSTATE_DONE
-    };
-
-
-    char* parameter_name = NULL;
-    char* parameter_value = NULL;
-
-
-    // Initialize the tokenizer
-    struct enxlog_config_tokenizer tokenizer;
-    enxlog_config_tokenizer_init(&tokenizer, line);
-
-
-    enum parse_substate parse_substate = PARSE_SUBSTATE_START;
-
-    while (parse_substate != PARSE_SUBSTATE_DONE) {
-        struct enxlog_config_tokenizer_token token;
-        int result;
-
-        // Consume the next token
-        result = enxlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
-        if (result == -1) {
-            parse_substate = PARSE_SUBSTATE_DONE;
-
-        } else if (result == 0) {
-
-            if (parse_substate != PARSE_SUBSTATE_START) {
-                error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
-                parse_substate = PARSE_SUBSTATE_DONE;
-                parse_state->state = PARSE_STATE_ERROR;
-
-            } else {
-                parse_substate = PARSE_SUBSTATE_DONE;
+                } break;
+                case PARSE_STATE_START_DOCUMENT: {
+                    switch (event.type) {
+                        case YAML_DOCUMENT_START_EVENT: {
+                            parse_state = PARSE_STATE_START_MAPPING;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+                case PARSE_STATE_START_MAPPING: {
+                    switch (event.type) {
+                        case YAML_MAPPING_START_EVENT: {
+                            parse_state = PARSE_STATE_SUCCESS;
+                            if (!enxlog_config_parse_sections(config, parser)) {
+                                parse_state = PARSE_STATE_ERROR;
+                            }
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
             }
+
+            yaml_event_delete(&event);
 
         } else {
-
-            switch (parse_substate) {
-
-                case PARSE_SUBSTATE_START: {
-
-                    switch (token.token_type) {
-
-                        case TOKEN_SECTION: {
-
-                            char *name = enxlog_config_token_to_string(&token);
-                            if (strcmp(name, "sink") == 0) {
-                                free(name);
-
-                                if (parse_state->sink_parameters) {
-                                    enxlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
-                                }
-                                parse_state->sink_parameters = enxlog_config_sink_parameters_create();
-
-                                parse_state->state = PARSE_STATE_SECTION_SINK;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-
-                            } else if (strcmp(name, "logger") == 0) {
-                                free(name);
-                                parse_state->state = PARSE_STATE_SECTION_LOGGER;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-                            } else {
-
-                                error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
-                                parse_state->state = PARSE_STATE_ERROR;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-                            }
-                        } break;
-
-                        case TOKEN_IDENTIFIER: {
-                            parameter_name = enxlog_config_token_to_string(&token);
-                            parse_substate = PARSE_SUBSTATE_ASSIGNMENT;
-                        } break;
-
-                        case TOKEN_COMMENT: {
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-
-                        default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-                    }
-
-                } break;
-
-                case PARSE_SUBSTATE_ASSIGNMENT: {
-
-                    switch (token.token_type) {
-
-                        case TOKEN_ASSIGNMENT: {
-                            parse_substate = PARSE_SUBSTATE_VALUE;
-
-                        } break;
-                        default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '='");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-                    }
-
-                } break;
-
-                case PARSE_SUBSTATE_VALUE: {
-                    switch (token.token_type) {
-
-                        case TOKEN_STRING: {
-                            parameter_value = enxlog_config_token_to_string(&token);
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-
-                        default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-                    }
-
-                } break;
-
-            }
+            parse_state = PARSE_STATE_ERROR;
+            config->error_callback(
+                parser->problem_mark.line,
+                parser->problem_mark.column,
+                parser->problem);
         }
     }
 
-    if ((parse_state->state != PARSE_STATE_ERROR) && (parameter_name != NULL) && (parameter_value != NULL)) {
-        enxlog_config_sink_parameters_add(parse_state->sink_parameters, parameter_name, parameter_value);
-    }
-
-    if (parameter_name) {
-        free(parameter_name);
-    }
-
-    if (parameter_value) {
-        free(parameter_value);
-    }
+    return (parse_state == PARSE_STATE_SUCCESS);
 }
 
-static void enxlog_config_parse_section_logger(
-    struct enxlog_config_parse_state* parse_state,
-    const char* line, enxlog_config_parser_error_callback_t error_callback)
+static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_parser_t *parser)
 {
-    enum parse_substate
-    {
-        PARSE_SUBSTATE_START,
-        PARSE_SUBSTATE_PATHNAME,
-        PARSE_SUBSTATE_SEPARATOR,
-        PARSE_SUBSTATE_IDENTIFIER,
-        PARSE_SUBSTATE_DONE
-    };
+    yaml_event_t event;
+    char *label = NULL;
 
-    // Reset the parent pointer
-    struct enxlog_filter_entry* parent = parse_state->config->filter_list;
+    enum {
+        PARSE_STATE_SECTION_LABEL,
+        PARSE_STATE_SECTION_CONTENT,
+        PARSE_STATE_SUCCESS,
+        PARSE_STATE_ERROR
+    } parse_state;
 
-    // Initialize the tokenizer
-    struct enxlog_config_tokenizer tokenizer;
-    enxlog_config_tokenizer_init(&tokenizer, line);
+    parse_state = PARSE_STATE_SECTION_LABEL;
 
+    while ((parse_state != PARSE_STATE_SUCCESS) && (parse_state != PARSE_STATE_ERROR)) {
+        if (yaml_parser_parse(parser, &event)) {
 
-    enum parse_substate parse_substate = PARSE_SUBSTATE_START;
+            switch (parse_state) {
+                case PARSE_STATE_SECTION_LABEL: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(label);
+                            label = strndup(event.data.scalar.value, event.data.scalar.length);
+                            parse_state = PARSE_STATE_SECTION_CONTENT;
+                        } break;
+                        case YAML_MAPPING_END_EVENT: {
+                            parse_state = PARSE_STATE_SUCCESS;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+                case PARSE_STATE_SECTION_CONTENT: {
+                    switch (event.type) {
+                        case YAML_MAPPING_START_EVENT: {
+                            parse_state = PARSE_STATE_SECTION_LABEL;
 
-    while (parse_substate != PARSE_SUBSTATE_DONE) {
-        struct enxlog_config_tokenizer_token token;
-        int result;
+                            if (strcmp(label, "options") == 0) {
+                                if (!enxlog_config_parse_section_options(config, parser)) {
+                                    parse_state = PARSE_STATE_ERROR;
+                                }
+                            }
 
-        // Consume the next token
-        result = enxlog_config_tokenizer_get_next_token(parse_state->line_number, &tokenizer, &token, error_callback);
-        if (result == -1) {
-            parse_substate = PARSE_SUBSTATE_DONE;
+                            else if (strcmp(label, "sink") == 0) {
+                                if (!enxlog_config_parse_section_sink(config, parser)) {
+                                    parse_state = PARSE_STATE_ERROR;
+                                }
+                            }
 
-        } else if (result == 0) {
+                            else if (strcmp(label, "filter") == 0) {
+                                if (!enxlog_config_parse_section_filter(config, parser)) {
+                                    parse_state = PARSE_STATE_ERROR;
+                                }
+                            }
 
-            if (parse_substate != PARSE_SUBSTATE_START) {
-                error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected input, found EOL");
-                parse_substate = PARSE_SUBSTATE_DONE;
-                parse_state->state = PARSE_STATE_ERROR;
+                            else {
+                                parse_state = PARSE_STATE_ERROR;
+                                config->error_callback(
+                                    event.start_mark.line,
+                                    event.start_mark.column,
+                                    "Unexpected input");
+                            }
 
-            } else {
-                parse_substate = PARSE_SUBSTATE_DONE;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
             }
+
+            yaml_event_delete(&event);
 
         } else {
+            parse_state = PARSE_STATE_ERROR;
+            config->error_callback(
+                parser->problem_mark.line,
+                parser->problem_mark.column,
+                parser->problem);
+        }
+    }
 
-            switch (parse_substate) {
+    free(label);
 
-                case PARSE_SUBSTATE_START: {
+    return (parse_state == PARSE_STATE_SUCCESS);
+}
 
-                    switch (token.token_type) {
+static bool enxlog_config_parse_section_options(struct enxlog_config *config, yaml_parser_t *parser)
+{
+    yaml_event_t event;
+    char *key = NULL;
+    char *value = NULL;
 
-                        case TOKEN_SECTION: {
+    enum {
+        PARSE_STATE_KEY,
+        PARSE_STATE_VALUE,
+        PARSE_STATE_SUCCESS,
+        PARSE_STATE_ERROR
+    } parse_state;
 
-                            char *name = enxlog_config_token_to_string(&token);
-                            if (strcmp(name, "sink") == 0) {
-                                free(name);
+    parse_state = PARSE_STATE_KEY;
 
-                                if (parse_state->sink_parameters) {
-                                    enxlog_config_sink_parameter_list_add(&parse_state->sink_parameter_list, parse_state->sink_parameters);
-                                }
-                                parse_state->sink_parameters = enxlog_config_sink_parameters_create();
+    while ((parse_state != PARSE_STATE_SUCCESS) && (parse_state != PARSE_STATE_ERROR)) {
+        if (yaml_parser_parse(parser, &event)) {
 
-                                parse_state->state = PARSE_STATE_SECTION_SINK;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-
-                            } else if (strcmp(name, "logger") == 0) {
-                                free(name);
-                                parse_state->state = PARSE_STATE_SECTION_LOGGER;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-
-                            } else {
-                                error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Unknown section");
-                                parse_state->state = PARSE_STATE_ERROR;
-                                parse_substate = PARSE_SUBSTATE_DONE;
-                            }
+            switch (parse_state) {
+                case PARSE_STATE_KEY: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(key);
+                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            parse_state = PARSE_STATE_VALUE;
                         } break;
-
-                        case TOKEN_STRING: {
-
-                            // Find the entry in the current parent
-                            char* path = enxlog_config_token_to_string(&token);
-                            struct enxlog_filter_entry* entry = enxlog_filter_find_entry(parent, path);
-                            if (entry) {
-                                parent = entry;
-                                free(path);
-                            } else {
-                                parent = enxlog_filter_append_child_entry(parent, path, LOGLEVEL_NONE);
-                            }
-
-                            parse_substate = PARSE_SUBSTATE_SEPARATOR;
+                        case YAML_MAPPING_END_EVENT: {
+                            parse_state = PARSE_STATE_SUCCESS;
                         } break;
-
-                        case TOKEN_COMMENT: {
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-
                         default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
                         } break;
                     }
-
                 } break;
-
-                case PARSE_SUBSTATE_PATHNAME: {
-
-                    switch (token.token_type) {
-
-                        case TOKEN_STRING: {
-
-                            // Find the entry in the current parent
-                            char* path = enxlog_config_token_to_string(&token);
-                            struct enxlog_filter_entry* entry = enxlog_filter_find_entry(parent, path);
-                            if (entry) {
-                                parent = entry;
-                                free(path);
-                            } else {
-                                parent = enxlog_filter_append_child_entry(parent, path, LOGLEVEL_NONE);
-                            }
-
-                            parse_substate = PARSE_SUBSTATE_SEPARATOR;
+                case PARSE_STATE_VALUE: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(value);
+                            value = strndup(event.data.scalar.value, event.data.scalar.length);
+                            enxlog_config_parse_configuration_option(config, key, value);
+                            parse_state = PARSE_STATE_KEY;
                         } break;
-
                         default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected STRING");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-                    }
-
-                } break;
-
-                case PARSE_SUBSTATE_SEPARATOR: {
-                    switch (token.token_type) {
-
-                        case TOKEN_SEPARATOR: {
-                            parse_substate = PARSE_SUBSTATE_PATHNAME;
-                        } break;
-
-                        case TOKEN_ASSIGNMENT: {
-                            parse_substate = PARSE_SUBSTATE_IDENTIFIER;
-                        } break;
-
-                        default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected '.' or '='");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-                    }
-
-                } break;
-
-                case PARSE_SUBSTATE_IDENTIFIER: {
-
-                    switch (token.token_type) {
-                        case TOKEN_IDENTIFIER: {
-
-                            char* identifier = enxlog_config_token_to_string(&token);
-                            parent->loglevel = enxlog_config_parse_loglevel(identifier);
-                            free(identifier);
-                            parse_substate = PARSE_SUBSTATE_DONE;
-                        } break;
-
-                        default: {
-                            error_callback(parse_state->line_number, (int)(tokenizer.ptr - tokenizer.input), "Expected IDENTIFIER");
-                            parse_state->state = PARSE_STATE_ERROR;
-                            parse_substate = PARSE_SUBSTATE_DONE;
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
                         } break;
                     }
                 } break;
             }
+
+            yaml_event_delete(&event);
+
+        } else {
+            parse_state = PARSE_STATE_ERROR;
+            config->error_callback(
+                parser->problem_mark.line,
+                parser->problem_mark.column,
+                parser->problem);
         }
     }
+
+    free(key);
+    free(value);
+
+    return (parse_state == PARSE_STATE_SUCCESS);
 }
 
-static void enxlog_filter_destroy_recursive(const struct enxlog_filter_entry* config)
+static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_parser_t *parser)
 {
-    // Recursively deallocate the children
-    const struct enxlog_filter_entry* index = config->children;
-    while (index->path) {
-        enxlog_filter_destroy_recursive(index);
-        index++;
+    yaml_event_t event;
+    char *key = NULL;
+    char *value = NULL;
+
+    enum {
+        PARSE_STATE_KEY,
+        PARSE_STATE_VALUE,
+        PARSE_STATE_SUCCESS,
+        PARSE_STATE_ERROR
+    } parse_state;
+
+    parse_state = PARSE_STATE_KEY;
+
+    struct enxlog_config_sink_parameters *sink_parameters = enxlog_config_sink_parameters_create();
+
+    while ((parse_state != PARSE_STATE_SUCCESS) && (parse_state != PARSE_STATE_ERROR)) {
+        if (yaml_parser_parse(parser, &event)) {
+
+            switch (parse_state) {
+                case PARSE_STATE_KEY: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(key);
+                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            parse_state = PARSE_STATE_VALUE;
+                        } break;
+                        case YAML_MAPPING_END_EVENT: {
+                            parse_state = PARSE_STATE_SUCCESS;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+                case PARSE_STATE_VALUE: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(value);
+                            value = strndup(event.data.scalar.value, event.data.scalar.length);
+                            enxlog_config_sink_parameters_add(sink_parameters, key, value);
+                            parse_state = PARSE_STATE_KEY;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+            }
+
+            yaml_event_delete(&event);
+
+        } else {
+            parse_state = PARSE_STATE_ERROR;
+            config->error_callback(
+                parser->problem_mark.line,
+                parser->problem_mark.column,
+                parser->problem);
+        }
     }
 
-    // Free the object pointers
-    free((char *)config->path);
-    free((void *)config->children);
+    if (parse_state == PARSE_STATE_SUCCESS) {
+        struct enxlog_sink *sink = enxlog_config_sink_list_append(config->sink_list);
+        enxlog_config_sink_factory_create_sink(
+            sink,
+            sink_parameters,
+            config->sink_creation_callback,
+            config->error_callback);
+    }
+
+    enxlog_config_sink_parameters_destroy(sink_parameters);
+    free(key);
+    free(value);
+
+    return (parse_state == PARSE_STATE_SUCCESS);
 }
 
-static struct enxlog_filter_entry* enxlog_filter_allocate_empty_entry()
+static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yaml_parser_t *parser)
 {
-    struct enxlog_filter_entry* node = malloc(sizeof(struct enxlog_filter_entry));
-    node->loglevel = LOGLEVEL_NONE;
-    node->path = NULL;
-    node->children = NULL;
+    yaml_event_t event;
+    char *key = NULL;
+    char *value = NULL;
 
-    return node;
+    enum {
+        PARSE_STATE_KEY,
+        PARSE_STATE_VALUE,
+        PARSE_STATE_SUCCESS,
+        PARSE_STATE_ERROR
+    } parse_state;
+
+    parse_state = PARSE_STATE_KEY;
+
+    while ((parse_state != PARSE_STATE_SUCCESS) && (parse_state != PARSE_STATE_ERROR)) {
+        if (yaml_parser_parse(parser, &event)) {
+
+            switch (parse_state) {
+                case PARSE_STATE_KEY: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(key);
+                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            parse_state = PARSE_STATE_VALUE;
+                        } break;
+                        case YAML_MAPPING_END_EVENT: {
+                            parse_state = PARSE_STATE_SUCCESS;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+                case PARSE_STATE_VALUE: {
+                    switch (event.type) {
+                        case YAML_SCALAR_EVENT: {
+                            free(value);
+                            value = strndup(event.data.scalar.value, event.data.scalar.length);
+                            enxlog_config_append_filter(config->filter_list, key, value);
+                            parse_state = PARSE_STATE_KEY;
+                        } break;
+                        default: {
+                            parse_state = PARSE_STATE_ERROR;
+                            config->error_callback(
+                                event.start_mark.line,
+                                event.start_mark.column,
+                                "Unexpected input");
+                        } break;
+                    }
+                } break;
+            }
+
+            yaml_event_delete(&event);
+
+        } else {
+            parse_state = PARSE_STATE_ERROR;
+            config->error_callback(
+                parser->problem_mark.line,
+                parser->problem_mark.column,
+                parser->problem);
+        }
+    }
+
+    free(key);
+    free(value);
+
+    return (parse_state == PARSE_STATE_SUCCESS);
 }
 
-static struct enxlog_filter_entry* enxlog_filter_find_entry(struct enxlog_filter_entry* parent, const char* path)
+static void enxlog_config_append_filter(
+    const struct enxlog_filter_entry *filter_list,
+    const char *path,
+    const char *level)
 {
-    const struct enxlog_filter_entry* search = parent->children;
-    while ((search->path) && (strcmp(search->path, path) != 0)) {
-        search++;
+    struct enxtxt_tokenizer tokenizer;
+    struct enxtxt_token token;
+
+    enxtxt_tokenizer_init(&tokenizer, path, 0);
+    while (enxtxt_tokenizer_get_next(&tokenizer, '.', &token)) {
+        char *path = strndup(token.ptr, token.length);
+        filter_list = enxlog_config_filter_list_append_entry(
+            (struct enxlog_filter_entry *)filter_list,
+            path,
+            token.final ? enxlog_config_parse_loglevel(level) : LOGLEVEL_NONE);
     }
-
-    if (search->path == NULL) {
-        search = NULL;
-    }
-
-    return (struct enxlog_filter_entry*)search;
-}
-
-static struct enxlog_filter_entry* enxlog_filter_append_child_entry(struct enxlog_filter_entry* parent, const char* path, enum enxlog_loglevel loglevel)
-{
-    const struct enxlog_filter_entry* search = parent->children;
-    while (search->path) {
-        search++;
-    }
-
-    size_t entries = (search - parent->children) + 1;
-    parent->children = (struct enxlog_filter_entry*)realloc((void*)parent->children, (entries + 1) * sizeof(struct enxlog_filter_entry));
-
-    memcpy((void*)(parent->children + entries), parent->children + entries - 1, sizeof(struct enxlog_filter_entry));
-
-    struct enxlog_filter_entry* child = (struct enxlog_filter_entry*)(parent->children + (entries - 1));
-    child->path = path;
-    child->loglevel = loglevel;
-    child->children = enxlog_filter_allocate_empty_entry();
-
-    return child;
 }
 
 static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name)
@@ -759,134 +577,9 @@ static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name)
     return LOGLEVEL_NONE;
 }
 
-static void enxlog_config_tokenizer_init(
-    struct enxlog_config_tokenizer* tokenizer,
-    const char* input)
+void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value)
 {
-    tokenizer->input = input;
-    tokenizer->ptr = input;
-}
-
-static int enxlog_config_tokenizer_get_next_token(
-    int line,
-    struct enxlog_config_tokenizer* tokenizer,
-    struct enxlog_config_tokenizer_token* token,
-    enxlog_config_parser_error_callback_t error_callback)
-{
-    // Skip over whitespace
-    while (*tokenizer->ptr && isspace(*tokenizer->ptr)) {
-        tokenizer->ptr++;
+    if (strcmp(key, "default_loglevel") == 0) {
+        config->default_loglevel = enxlog_config_parse_loglevel(value);
     }
-
-    // End of stream
-    if (*tokenizer->ptr == 0) {
-        return 0;
-    }
-
-    // Determine token type
-    if (isalpha(*tokenizer->ptr)) {
-        token->start = tokenizer->ptr++;
-        while (*tokenizer->ptr && isalpha(*tokenizer->ptr)) {
-            tokenizer->ptr++;
-        }
-        token->end = tokenizer->ptr - 1;
-        token->token_type = TOKEN_IDENTIFIER;
-
-        return 1;
-    }
-
-    if (*tokenizer->ptr == '\"') {
-        token->start = tokenizer->ptr++;
-        while (*tokenizer->ptr && *tokenizer->ptr != '\"') {
-            tokenizer->ptr++;
-        }
-
-        if (*tokenizer->ptr == 0) {
-            error_callback(line, (int)(tokenizer->ptr - tokenizer->input), "Expected \'\"\', found EOL");
-            return -1;
-        } else {
-            tokenizer->ptr++;
-        }
-
-        token->end = tokenizer->ptr - 1;
-        token->token_type = TOKEN_STRING;
-
-        return 1;
-    }
-
-    if (*tokenizer->ptr == '[') {
-        token->start = tokenizer->ptr++;
-        while (*tokenizer->ptr && *tokenizer->ptr != ']') {
-            tokenizer->ptr++;
-        }
-
-        if (*tokenizer->ptr == 0) {
-            error_callback(line, (int)(tokenizer->ptr - tokenizer->input), "Expected \']\', found EOL");
-            return -1;
-        } else {
-            tokenizer->ptr++;
-        }
-
-        token->end = tokenizer->ptr - 1;
-        token->token_type = TOKEN_SECTION;
-
-        return 1;
-    }
-
-    if (*tokenizer->ptr == '.') {
-        token->start = token->end = tokenizer->ptr++;
-        token->token_type = TOKEN_SEPARATOR;
-
-        return 1;
-    }
-
-    if (*tokenizer->ptr == '=') {
-        token->start = token->end = tokenizer->ptr++;
-        token->token_type = TOKEN_ASSIGNMENT;
-
-        return 1;
-    }
-
-    if (*tokenizer->ptr == '#') {
-        token->start = token->end = tokenizer->ptr++;
-        token->token_type = TOKEN_COMMENT;
-
-        return 1;
-    }
-
-    error_callback(line, (int)(tokenizer->ptr - tokenizer->input), "Unexpected character");
-    return -1;
-}
-
-static char* enxlog_config_token_to_string(const struct enxlog_config_tokenizer_token* token)
-{
-    char* result = NULL;
-
-    switch (token->token_type) {
-
-        case TOKEN_STRING: {
-            size_t length = (token->end - token->start);
-            result = malloc(length);
-            memcpy(result, token->start + 1, length - 1);
-            result[length-1] = 0;
-        } break;
-
-        case TOKEN_SECTION: {
-            size_t length = (token->end - token->start);
-            result = malloc(length);
-            memcpy(result, token->start + 1, length - 1);
-            result[length-1] = 0;
-        } break;
-
-        case TOKEN_IDENTIFIER: {
-            size_t length = (token->end - token->start) + 2;
-            result = malloc(length);
-            memcpy(result, token->start, length - 1);
-            result[length-1] = 0;
-        } break;
-
-        default: break;
-    }
-
-    return result;
 }
