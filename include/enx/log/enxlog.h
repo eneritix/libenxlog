@@ -97,20 +97,20 @@ struct enxlog_lock
 
 
 /**
- * @brief Start a filter list
+ * @brief Start a filter tree
  *
  */
-#define enxlog_filter_list(_name)                           \
+#define enxlog_filter_tree(_name)                           \
 const struct enxlog_filter_entry* _name =                   \
     (const struct enxlog_filter_entry*)                     \
     (const struct enxlog_filter_entry []) {
 
 
 /**
- * @brief End a filter list
+ * @brief End a filter tree
  *
  */
-#define enxlog_end_filter_list()                            \
+#define enxlog_end_filter_tree()                            \
         { .path = 0 }                                       \
     };
 

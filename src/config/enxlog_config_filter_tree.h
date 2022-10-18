@@ -20,18 +20,51 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_FILTER_LIST_H
-#define ENXLOG_CONFIG_FILTER_LIST_H
+#ifndef ENXLOG_CONFIG_FILTER_TREE_H
+#define ENXLOG_CONFIG_FILTER_TREE_H
 
 #include <enx/log/enxlog.h>
 
 __BEGIN_DECLS
 
+/**
+ * @brief Creates a filter tree
+ *
+ */
+struct enxlog_filter_entry *enxlog_config_filter_tree_create();
 
-struct enxlog_filter_entry *enxlog_config_filter_list_create();
-void enxlog_config_filter_list_destroy(const struct enxlog_filter_entry *filter_list);
-struct enxlog_filter_entry *enxlog_config_filter_list_find_entry(const struct enxlog_filter_entry *parent, const char *path);
-struct enxlog_filter_entry* enxlog_config_filter_list_append_entry(struct enxlog_filter_entry *parent, const char *path, enum enxlog_loglevel loglevel);
+/**
+ * @brief Destroys a filter tree
+ *
+ */
+void enxlog_config_filter_tree_destroy(const struct enxlog_filter_entry *root);
+
+/**
+ * @brief Finds a child entry
+ *
+ */
+struct enxlog_filter_entry *enxlog_config_filter_tree_find_child(
+    const struct enxlog_filter_entry *parent,
+    const char *path);
+
+/**
+ * @brief Appends a child entry to the parent
+ *
+ */
+struct enxlog_filter_entry* enxlog_config_filter_tree_append_child(
+    struct enxlog_filter_entry *parent,
+    const char *path,
+    enum enxlog_loglevel loglevel);
+
+/**
+ * @brief Appends an entry to the parent, creating missing child nodes
+ *
+ */
+struct enxlog_filter_entry* enxlog_config_filter_tree_append(
+    struct enxlog_filter_entry *parent,
+    const char *path,
+    enum enxlog_loglevel loglevel);
+
 
 __END_DECLS
 

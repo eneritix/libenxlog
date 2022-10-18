@@ -30,15 +30,34 @@
 __BEGIN_DECLS
 
 
+/**
+ * @brief Sink list
+ *
+ */
 struct enxlog_config_sink_list
 {
     struct enxlog_sink *sinks;
     size_t sink_count;
 };
 
+/**
+ * @brief Creates a sink list
+ *
+ */
 struct enxlog_config_sink_list *enxlog_config_sink_list_create();
-void enxlog_config_sink_list_destroy(struct enxlog_config_sink_list * sink_list);
+
+/**
+ * @brief Destroys a sink list
+ *
+ */
+void enxlog_config_sink_list_destroy(struct enxlog_config_sink_list *sink_list);
+
+/**
+ * @brief Appends a new empty sink item to the sink list
+ *
+ */
 struct enxlog_sink *enxlog_config_sink_list_append(struct enxlog_config_sink_list *sink_list);
+
 
 __END_DECLS
 

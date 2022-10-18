@@ -57,13 +57,13 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    print_filter_tree(enxlog_config_get_filter_list(config));
+    print_filter_tree(enxlog_config_get_filter_tree(config));
 
     enxlog_init(
         enxlog_config_get_default_loglevel(config),
-        enxlog_config_get_sinks(config),
+        enxlog_config_get_sink_list(config),
         NULL,
-        enxlog_config_get_filter_list(config));
+        enxlog_config_get_filter_tree(config));
 
     LOG_DEBUG(a, "This should not display");
     LOG_DEBUG(b, "This should not display");

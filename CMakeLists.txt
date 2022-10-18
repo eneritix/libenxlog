@@ -42,7 +42,7 @@ if (LIBENXLOG_CONFIG_PARSER)
         src/config/enxlog_config_sink_factory.c
         src/config/enxlog_config_sink_parameters.c
         src/config/enxlog_config_parser.c
-        src/config/enxlog_config_filter_list.c
+        src/config/enxlog_config_filter_tree.c
         src/config/enxlog_config_sink_list.c
     )
 endif(LIBENXLOG_CONFIG_PARSER)
@@ -62,6 +62,9 @@ target_link_libraries(test_basic enxlog)
 
 add_executable(test_file_sink test/test_file_sink.c test/test_utils.c)
 target_link_libraries(test_file_sink enxlog)
+
+add_executable(test_noinit test/test_noinit.c test/test_utils.c)
+target_link_libraries(test_noinit enxlog)
 
 if (LIBENXLOG_CONFIG_PARSER)
     add_executable(test_config_parser test/test_config_parser.c test/test_utils.c)

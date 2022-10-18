@@ -29,8 +29,8 @@
 static struct enxlog_sink_file_context sink_file_context;
 
 
-enxlog_filter_list(filter_list)
-enxlog_end_filter_list()
+enxlog_filter_tree(filter_tree)
+enxlog_end_filter_tree()
 
 
 enxlog_sink_list(sink_list)
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_list);
+    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_tree);
 
     LOG_ERROR(logger, "This is an error");
     LOG_WARN(logger, "This is a warning");

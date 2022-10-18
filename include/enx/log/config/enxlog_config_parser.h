@@ -61,13 +61,13 @@ enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* co
  * @brief Returns the sinks specified in the configuration file
  *
  */
-const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config);
+const struct enxlog_sink *enxlog_config_get_sink_list(struct enxlog_config* config);
 
 /**
  * @brief Returns the filters specified in the configuration file
  *
  */
-const struct enxlog_filter_entry *enxlog_config_get_filter_list(struct enxlog_config* config);
+const struct enxlog_filter_entry *enxlog_config_get_filter_tree(struct enxlog_config* config);
 
 
 __END_DECLS

@@ -23,9 +23,8 @@
 #include <enx/log/config/enxlog_config_parser.h>
 #include <enx/log/config/enxlog_config_sink_parameters.h>
 #include <enx/log/config/enxlog_config_sink_factory.h>
-#include <enx/txt/tokenizer.h>
 
-#include "enxlog_config_filter_list.h"
+#include "enxlog_config_filter_tree.h"
 #include "enxlog_config_sink_list.h"
 
 #include <ctype.h>
@@ -40,7 +39,7 @@
 struct enxlog_config
 {
     struct enxlog_config_sink_list *sink_list;
-    struct enxlog_filter_entry *filter_list;
+    struct enxlog_filter_entry *filter_tree;
     enxlog_config_parser_sink_creation_callback_t sink_creation_callback;
     enxlog_config_parser_error_callback_t error_callback;
     enum enxlog_loglevel default_loglevel;
@@ -52,12 +51,8 @@ static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_pars
 static bool enxlog_config_parse_section_options(struct enxlog_config *config, yaml_parser_t *parser);
 static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_parser_t *parser);
 static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yaml_parser_t *parser);
-static void enxlog_config_append_filter(
-    const struct enxlog_filter_entry *filter_list,
-    const char *path,
-    const char *level);
 static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name);
-void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value);
+static void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value);
 
 
 
@@ -70,7 +65,7 @@ struct enxlog_config *enxlog_config_parse(
     yaml_parser_t parser;
 
     config->sink_list = enxlog_config_sink_list_create();
-    config->filter_list = enxlog_config_filter_list_create();
+    config->filter_tree = enxlog_config_filter_tree_create();
     config->sink_creation_callback = sink_creation_callback;
     config->error_callback = error_callback;
     config->default_loglevel = LOGLEVEL_NONE;
@@ -110,7 +105,7 @@ error_fopen:
 
 void enxlog_config_destroy(struct enxlog_config* config)
 {
-    enxlog_config_filter_list_destroy(config->filter_list);
+    enxlog_config_filter_tree_destroy(config->filter_tree);
     enxlog_config_sink_list_destroy(config->sink_list);
     free(config);
 }
@@ -120,14 +115,14 @@ enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* co
     return config->default_loglevel;
 }
 
-const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config)
+const struct enxlog_sink *enxlog_config_get_sink_list(struct enxlog_config* config)
 {
     return config->sink_list->sinks;
 }
 
-const struct enxlog_filter_entry *enxlog_config_get_filter_list(struct enxlog_config* config)
+const struct enxlog_filter_entry *enxlog_config_get_filter_tree(struct enxlog_config* config)
 {
-    return config->filter_list->children;
+    return config->filter_tree->children;
 }
 
 static bool enxlog_config_parse_root(struct enxlog_config *config, yaml_parser_t *parser)
@@ -192,6 +187,7 @@ static bool enxlog_config_parse_root(struct enxlog_config *config, yaml_parser_t
                         } break;
                     }
                 } break;
+                default: break;
             }
 
             yaml_event_delete(&event);
@@ -230,7 +226,7 @@ static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_pars
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(label);
-                            label = strndup(event.data.scalar.value, event.data.scalar.length);
+                            label = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             parse_state = PARSE_STATE_SECTION_CONTENT;
                         } break;
                         case YAML_MAPPING_END_EVENT: {
@@ -286,6 +282,7 @@ static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_pars
                         } break;
                     }
                 } break;
+                default: break;
             }
 
             yaml_event_delete(&event);
@@ -327,7 +324,7 @@ static bool enxlog_config_parse_section_options(struct enxlog_config *config, ya
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(key);
-                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            key = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             parse_state = PARSE_STATE_VALUE;
                         } break;
                         case YAML_MAPPING_END_EVENT: {
@@ -346,7 +343,7 @@ static bool enxlog_config_parse_section_options(struct enxlog_config *config, ya
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(value);
-                            value = strndup(event.data.scalar.value, event.data.scalar.length);
+                            value = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             enxlog_config_parse_configuration_option(config, key, value);
                             parse_state = PARSE_STATE_KEY;
                         } break;
@@ -359,6 +356,7 @@ static bool enxlog_config_parse_section_options(struct enxlog_config *config, ya
                         } break;
                     }
                 } break;
+                default: break;
             }
 
             yaml_event_delete(&event);
@@ -403,7 +401,7 @@ static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(key);
-                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            key = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             parse_state = PARSE_STATE_VALUE;
                         } break;
                         case YAML_MAPPING_END_EVENT: {
@@ -422,7 +420,7 @@ static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(value);
-                            value = strndup(event.data.scalar.value, event.data.scalar.length);
+                            value = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             enxlog_config_sink_parameters_add(sink_parameters, key, value);
                             parse_state = PARSE_STATE_KEY;
                         } break;
@@ -435,6 +433,7 @@ static bool enxlog_config_parse_section_sink(struct enxlog_config *config, yaml_
                         } break;
                     }
                 } break;
+                default: break;
             }
 
             yaml_event_delete(&event);
@@ -487,7 +486,7 @@ static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yam
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(key);
-                            key = strndup(event.data.scalar.value, event.data.scalar.length);
+                            key = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
                             parse_state = PARSE_STATE_VALUE;
                         } break;
                         case YAML_MAPPING_END_EVENT: {
@@ -506,8 +505,8 @@ static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yam
                     switch (event.type) {
                         case YAML_SCALAR_EVENT: {
                             free(value);
-                            value = strndup(event.data.scalar.value, event.data.scalar.length);
-                            enxlog_config_append_filter(config->filter_list, key, value);
+                            value = strndup((const char *)event.data.scalar.value, event.data.scalar.length);
+                            enxlog_config_filter_tree_append(config->filter_tree, key, enxlog_config_parse_loglevel(value));
                             parse_state = PARSE_STATE_KEY;
                         } break;
                         default: {
@@ -519,6 +518,7 @@ static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yam
                         } break;
                     }
                 } break;
+                default: break;
             }
 
             yaml_event_delete(&event);
@@ -536,24 +536,6 @@ static bool enxlog_config_parse_section_filter(struct enxlog_config *config, yam
     free(value);
 
     return (parse_state == PARSE_STATE_SUCCESS);
-}
-
-static void enxlog_config_append_filter(
-    const struct enxlog_filter_entry *filter_list,
-    const char *path,
-    const char *level)
-{
-    struct enxtxt_tokenizer tokenizer;
-    struct enxtxt_token token;
-
-    enxtxt_tokenizer_init(&tokenizer, path, 0);
-    while (enxtxt_tokenizer_get_next(&tokenizer, '.', &token)) {
-        char *path = strndup(token.ptr, token.length);
-        filter_list = enxlog_config_filter_list_append_entry(
-            (struct enxlog_filter_entry *)filter_list,
-            path,
-            token.final ? enxlog_config_parse_loglevel(level) : LOGLEVEL_NONE);
-    }
 }
 
 static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name)
@@ -577,7 +559,7 @@ static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name)
     return LOGLEVEL_NONE;
 }
 
-void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value)
+static void enxlog_config_parse_configuration_option(struct enxlog_config *config, const char *key, const char *value)
 {
     if (strcmp(key, "default_loglevel") == 0) {
         config->default_loglevel = enxlog_config_parse_loglevel(value);
