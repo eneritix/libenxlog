@@ -20,50 +20,52 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_FILTER_TREE_H
-#define ENXLOG_CONFIG_FILTER_TREE_H
+#ifndef ENXLOG_SINK_PARAMETERS_H
+#define ENXLOG_SINK_PARAMETERS_H
 
-#include <enx/log/enxlog.h>
+#include <stdlib.h>
+#include <sys/cdefs.h>
 
 __BEGIN_DECLS
 
-/**
- * @brief Creates a filter tree
- *
- */
-struct enxlog_filter_entry *enxlog_config_filter_tree_create();
+
+struct enxlog_sink_parameter
+{
+    const char* key;
+    const char* value;
+    struct enxlog_sink_parameter *next;
+};
+
+struct enxlog_sink_parameters
+{
+    struct enxlog_sink_parameter *head;
+    struct enxlog_sink_parameter *tail;
+};
 
 /**
- * @brief Destroys a filter tree
+ * @brief Creates a sink parameters object
  *
  */
-void enxlog_config_filter_tree_destroy(const struct enxlog_filter_entry *root);
+struct enxlog_sink_parameters* enxlog_sink_parameters_create();
 
 /**
- * @brief Finds a child entry
+ * @brief Destroys a sink parameters object
  *
  */
-struct enxlog_filter_entry *enxlog_config_filter_tree_find_child(
-    const struct enxlog_filter_entry *parent,
-    const char *path);
+void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters* parameters);
 
 /**
- * @brief Appends a child entry to the parent
+ * @brief Adds a parameter to the parameters object
  *
  */
-struct enxlog_filter_entry* enxlog_config_filter_tree_append_child(
-    struct enxlog_filter_entry *parent,
-    const char *path,
-    enum enxlog_loglevel loglevel);
+void enxlog_sink_parameters_add(struct enxlog_sink_parameters* parameters, const char* key, const char* value);
 
 /**
- * @brief Appends an entry to the parent, creating missing child nodes
+ * @brief Finds a parameter in the parameters object
+ * @returns NULL if the key is not found
  *
  */
-struct enxlog_filter_entry* enxlog_config_filter_tree_append(
-    struct enxlog_filter_entry *parent,
-    const char *path,
-    enum enxlog_loglevel loglevel);
+const char* enxlog_sink_parameters_find(const struct enxlog_sink_parameters* parameters, const char* key);
 
 
 __END_DECLS

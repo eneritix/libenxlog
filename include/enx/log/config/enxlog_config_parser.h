@@ -24,7 +24,7 @@
 #define ENXLOG_CONFIG_PARSER_H
 
 #include <enx/log/enxlog.h>
-#include <enx/log/config/enxlog_config_sink_parameters.h>
+#include <enx/log/sinks/enxlog_sink_parameters.h>
 
 #include <stdbool.h>
 #include <sys/cdefs.h>
@@ -34,7 +34,10 @@ __BEGIN_DECLS
 struct enxlog_config;
 
 typedef void (*enxlog_config_parser_error_callback_t)(int line, int column, const char* message);
-typedef bool (*enxlog_config_parser_sink_creation_callback_t)(struct enxlog_sink* sink, const struct enxlog_config_sink_parameters* parameters);
+typedef bool (*enxlog_config_parser_sink_creation_callback_t)(
+    struct enxlog_sink* sink,
+    const struct enxlog_sink_parameters* parameters,
+    enxlog_config_parser_error_callback_t error_callback);
 
 /**
  * @brief Parses a configuration file into a configuration object
@@ -61,13 +64,13 @@ enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* co
  * @brief Returns the sinks specified in the configuration file
  *
  */
-const struct enxlog_sink *enxlog_config_get_sink_list(struct enxlog_config* config);
+const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config);
 
 /**
- * @brief Returns the filters specified in the configuration file
+ * @brief Returns the filter specified in the configuration file
  *
  */
-const struct enxlog_filter_entry *enxlog_config_get_filter_tree(struct enxlog_config* config);
+const struct enxlog_filter *enxlog_config_get_filter(struct enxlog_config* config);
 
 
 __END_DECLS

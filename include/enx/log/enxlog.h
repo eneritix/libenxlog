@@ -49,7 +49,7 @@ enum enxlog_loglevel
  */
 struct enxlog_logger
 {
-    const char** path;
+    const char **path;
 };
 
 /**
@@ -58,9 +58,18 @@ struct enxlog_logger
  */
 struct enxlog_filter_entry
 {
-    const char* path;
+    char *path;
     enum enxlog_loglevel loglevel;
-    const struct enxlog_filter_entry* children;
+    struct enxlog_filter_entry *children;
+};
+
+/**
+ * @brief Filter
+ *
+ */
+struct enxlog_filter
+{
+    struct enxlog_filter_entry *entries;
 };
 
 /**
@@ -71,16 +80,16 @@ struct enxlog_sink
 {
     void (*fn_output)(
         void* context,
-        const struct enxlog_logger* logger,
+        const struct enxlog_logger *logger,
         enum enxlog_loglevel loglevel,
-        const char* func,
+        const char *func,
         unsigned int line,
-        const char* fmt,
+        const char *fmt,
         va_list ap);
 
-    void (*fn_shutdown)(void* context);
+    void (*fn_shutdown)(void *context);
 
-    void* context;
+    void *context;
 };
 
 /**
@@ -89,36 +98,40 @@ struct enxlog_sink
  */
 struct enxlog_lock
 {
-    void (*fn_lock)(void* context);
-    void (*fn_unlock)(void* context);
+    void (*fn_lock)(void *context);
+    void (*fn_unlock)(void *context);
     void* context;
 };
 
 
-
 /**
- * @brief Start a filter tree
+ * @brief Start a filter
  *
  */
-#define enxlog_filter_tree(_name)                           \
-const struct enxlog_filter_entry* _name =                   \
-    (const struct enxlog_filter_entry*)                     \
-    (const struct enxlog_filter_entry []) {
+#define enxlog_filter(_name)                                \
+const struct enxlog_filter* _name =                         \
+    (const struct enxlog_filter*)                           \
+    (const struct enxlog_filter []) {                       \
+    {                                                       \
+    .entries = (struct enxlog_filter_entry*)                \
+               (const struct enxlog_filter_entry []) {
 
 
 /**
- * @brief End a filter tree
+ * @brief End a filter
  *
  */
-#define enxlog_end_filter_tree()                            \
-        { .path = 0 }                                       \
+#define enxlog_end_filter()                                 \
+            { .path = 0 }                                   \
+            }                                               \
+        }                                                   \
     };
 
 /**
  * @brief Start a filter entry
  *
  */
-#define enxlog_filter(_path, _loglevel)                     \
+#define enxlog_filter_entry(_path, _loglevel)               \
     {                                                       \
         .path = _path,                                      \
         .loglevel = _loglevel,                              \
@@ -129,7 +142,7 @@ const struct enxlog_filter_entry* _name =                   \
  * @brief End a filter entry
  *
  */
-#define enxlog_endfilter()                                  \
+#define enxlog_end_filter_entry()                           \
             { .path = 0 }                                   \
         }                                                   \
     },
@@ -204,7 +217,7 @@ void enxlog_init(
     enum enxlog_loglevel default_loglevel,
     const struct enxlog_sink *sinks,
     const struct enxlog_lock *lock,
-    const struct enxlog_filter_entry *filter_list);
+    const struct enxlog_filter *filter);
 
 /**
  * @brief Log function
@@ -219,10 +232,10 @@ void enxlog_log(
         const char* fmt, ...);
 
 
-#define LOG_ERROR(logger, fmt, ...) do { enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_WARN(logger, fmt, ...) do { enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_INFO(logger, fmt, ...) do { enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_DEBUG(logger, fmt, ...) do { enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
+#define LOG_ERROR(logger, fmt, ...)  do { enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
+#define LOG_WARN(logger, fmt, ...)   do { enxlog_log(logger, LOGLEVEL_WARN,  __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
+#define LOG_INFO(logger, fmt, ...)   do { enxlog_log(logger, LOGLEVEL_INFO,  __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
+#define LOG_DEBUG(logger, fmt, ...)  do { enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
 
 
 __END_DECLS;

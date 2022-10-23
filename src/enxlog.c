@@ -29,18 +29,18 @@
 static enum enxlog_loglevel enxlog_default_loglevel = LOGLEVEL_NONE;
 static const struct enxlog_sink* enxlog_sinks = NULL;
 static const struct enxlog_lock *enxlog_lock = NULL;
-static const struct enxlog_filter_entry *enxlog_filter_list = NULL;
+static const struct enxlog_filter *enxlog_filter = NULL;
 
 void enxlog_init(
     enum enxlog_loglevel default_loglevel,
     const struct enxlog_sink *sinks,
     const struct enxlog_lock *lock,
-    const struct enxlog_filter_entry *filter_list)
+    const struct enxlog_filter *filter)
 {
     enxlog_default_loglevel = default_loglevel;
     enxlog_sinks = sinks;
     enxlog_lock = lock;
-    enxlog_filter_list = filter_list;
+    enxlog_filter = filter;
 
 }
 
@@ -51,6 +51,11 @@ void enxlog_log(
     unsigned int line,
     const char* fmt, ...)
 {
+    // No sinks
+    if (enxlog_sinks == NULL) {
+        return;
+    }
+
     // Lock
     if (enxlog_lock) {
         enxlog_lock->fn_lock(enxlog_lock->context);
@@ -58,7 +63,7 @@ void enxlog_log(
 
     enum enxlog_loglevel config_loglevel = enxlog_default_loglevel;
 
-    const struct enxlog_filter_entry* filter_entry = enxlog_filter_list;
+    const struct enxlog_filter_entry* filter_entry = enxlog_filter->entries;
     const char** path = logger->path;
 
     while (*path) {

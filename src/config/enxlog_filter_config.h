@@ -20,43 +20,61 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_SINK_LIST_H
-#define ENXLOG_CONFIG_SINK_LIST_H
+#ifndef ENXLOG_FILTER_CONFIG_H
+#define ENXLOG_FILTER_CONFIG_H
 
-#include <stdlib.h>
-#include <sys/cdefs.h>
 #include <enx/log/enxlog.h>
 
 __BEGIN_DECLS
 
-
 /**
- * @brief Sink list
- *
+ * @brief Filter configuration
  */
-struct enxlog_config_sink_list
+struct enxlog_filter_config
 {
-    struct enxlog_sink *sinks;
-    size_t sink_count;
+    struct enxlog_filter_config_entry *root;
 };
 
 /**
- * @brief Creates a sink list
- *
+ * @brief Filter configuration entry
  */
-struct enxlog_config_sink_list *enxlog_config_sink_list_create();
+struct enxlog_filter_config_entry
+{
+    char* path;
+    enum enxlog_loglevel loglevel;
+    struct enxlog_filter_config_entry* child;
+    struct enxlog_filter_config_entry* next;
+};
 
 /**
- * @brief Destroys a sink list
- *
+ * @brief Creates a filter configuration
  */
-void enxlog_config_sink_list_destroy(struct enxlog_config_sink_list *sink_list);
+struct enxlog_filter_config *enxlog_filter_config_create();
 
 /**
- * @brief Appends a new empty sink item to the sink list
- *
+ * @brief Destroys a filter configuration
  */
-struct enxlog_sink *enxlog_config_sink_list_append(struct enxlog_config_sink_list *sink_list);
+void enxlog_filter_config_destroy(struct enxlog_filter_config *obj);
+
+/**
+ * @brief Appends an entry to the filter configuration
+ */
+void enxlog_filter_config_append(
+    struct enxlog_filter_config *obj,
+    const char *path,
+    enum enxlog_loglevel loglevel);
+
+/**
+ * @brief Transforms the configuration to a filter
+ */
+struct enxlog_filter *enxlog_filter_config_transform(
+    const struct enxlog_filter_config *obj);
+
+/**
+ * @brief Destroys a transformed filter
+ */
+void enxlog_filter_config_transform_destroy(
+     struct enxlog_filter *obj);
 
 
 __END_DECLS

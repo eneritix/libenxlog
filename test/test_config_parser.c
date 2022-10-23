@@ -21,7 +21,7 @@
  */
 
 #include <enx/log/enxlog.h>
-#include <enx/log/sinks/enxlog_sink_stdout.h>
+#include <enx/log/sinks/enxlog_sink_factory.h>
 #include <enx/log/config/enxlog_config_parser.h>
 
 #include <stdio.h>
@@ -51,19 +51,19 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    struct enxlog_config* config = enxlog_config_parse(argv[1], NULL, error_callback);
+    struct enxlog_config* config = enxlog_config_parse(argv[1], enxlog_sink_factory_create_sink, error_callback);
     if (config == NULL) {
         printf("Error parsing config file!\n");
         return -1;
     }
 
-    print_filter_tree(enxlog_config_get_filter_tree(config));
+    print_filter_tree(enxlog_config_get_filter(config));
 
     enxlog_init(
         enxlog_config_get_default_loglevel(config),
-        enxlog_config_get_sink_list(config),
+        enxlog_config_get_sinks(config),
         NULL,
-        enxlog_config_get_filter_tree(config));
+        enxlog_config_get_filter(config));
 
     LOG_DEBUG(a, "This should not display");
     LOG_DEBUG(b, "This should not display");

@@ -29,8 +29,8 @@
 static struct enxlog_sink_file_context sink_file_context;
 
 
-enxlog_filter_tree(filter_tree)
-enxlog_end_filter_tree()
+enxlog_filter(filter_tree)
+enxlog_end_filter()
 
 
 enxlog_sink_list(sink_list)

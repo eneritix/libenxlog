@@ -32,21 +32,21 @@ LOGGER_DECLARE(logger_two, "one", "two");
 LOGGER_DECLARE(logger_three, "one", "two", "three");
 
 
-enxlog_filter_tree(filter_tree)
-    enxlog_filter("one", LOGLEVEL_INFO)
-        enxlog_filter("two", LOGLEVEL_INFO)
-            enxlog_filter("three", LOGLEVEL_ERROR)
-            enxlog_endfilter()
-        enxlog_endfilter()
-    enxlog_endfilter()
-enxlog_end_filter_tree()
+enxlog_filter(filter_tree)
+    enxlog_filter_entry("one", LOGLEVEL_INFO)
+        enxlog_filter_entry("two", LOGLEVEL_INFO)
+            enxlog_filter_entry("three", LOGLEVEL_ERROR)
+            enxlog_end_filter_entry()
+        enxlog_end_filter_entry()
+    enxlog_end_filter_entry()
+enxlog_end_filter()
 
 
 enxlog_sink_list(sink_list)
     enxlog_sink(0, &enxlog_sink_stdout, 0)
 enxlog_end_sink_list()
 
-    
+
 
 int main(void)
 {

@@ -20,7 +20,7 @@
     SOFTWARE.
  */
 
-#include <enx/log/config/enxlog_config_sink_factory.h>
+#include <enx/log/sinks/enxlog_sink_factory.h>
 #include <enx/log/sinks/enxlog_sink_stdout.h>
 #include <enx/log/sinks/enxlog_sink_stdout_color.h>
 #include <enx/log/sinks/enxlog_sink_file.h>
@@ -28,9 +28,9 @@
 #include <string.h>
 
 
-static bool enxlog_config_sink_factory_create_stdout_sink(
+static bool enxlog_sink_factory_create_stdout_sink(
         struct enxlog_sink* sink,
-        const struct enxlog_config_sink_parameters* parameters,
+        const struct enxlog_sink_parameters* parameters,
         enxlog_config_parser_error_callback_t error_callback)
 {
     sink->fn_output = enxlog_sink_stdout;
@@ -40,9 +40,9 @@ static bool enxlog_config_sink_factory_create_stdout_sink(
     return true;
 }
 
-static bool enxlog_config_sink_factory_create_stdout_color_sink(
+static bool enxlog_sink_factory_create_stdout_color_sink(
         struct enxlog_sink* sink,
-        const struct enxlog_config_sink_parameters* parameters,
+        const struct enxlog_sink_parameters* parameters,
         enxlog_config_parser_error_callback_t error_callback)
 {
     sink->fn_output = enxlog_sink_stdout_color;
@@ -52,12 +52,12 @@ static bool enxlog_config_sink_factory_create_stdout_color_sink(
     return true;
 }
 
-static bool enxlog_config_sink_factory_create_file_sink(
+static bool enxlog_sink_factory_create_file_sink(
         struct enxlog_sink* sink,
-        const struct enxlog_config_sink_parameters* parameters,
+        const struct enxlog_sink_parameters* parameters,
         enxlog_config_parser_error_callback_t error_callback)
 {
-    const char* path = enxlog_config_sink_parameters_find(parameters, "path");
+    const char* path = enxlog_sink_parameters_find(parameters, "path");
     if (path == NULL) {
         error_callback(0, 0, "File sink should specify 'path'");
         return false;
@@ -78,33 +78,28 @@ static bool enxlog_config_sink_factory_create_file_sink(
 }
 
 
-bool enxlog_config_sink_factory_create_sink(
+bool enxlog_sink_factory_create_sink(
     struct enxlog_sink* sink,
-    const struct enxlog_config_sink_parameters* parameters,
-    enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
+    const struct enxlog_sink_parameters* parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
 
-    const char* value = enxlog_config_sink_parameters_find(parameters, "type");
+    const char* value = enxlog_sink_parameters_find(parameters, "type");
     if (value == NULL) {
         error_callback(0, 0, "Sink type not specified");
         return false;
     }
 
     if (strcmp(value, "stdout") == 0) {
-        return enxlog_config_sink_factory_create_stdout_sink(sink, parameters, error_callback);
+        return enxlog_sink_factory_create_stdout_sink(sink, parameters, error_callback);
 
     } else if (strcmp(value, "stdout_color") == 0) {
-        return enxlog_config_sink_factory_create_stdout_color_sink(sink, parameters, error_callback);
+        return enxlog_sink_factory_create_stdout_color_sink(sink, parameters, error_callback);
 
     } else if (strcmp(value, "file") == 0) {
-        return enxlog_config_sink_factory_create_file_sink(sink, parameters, error_callback);
+        return enxlog_sink_factory_create_file_sink(sink, parameters, error_callback);
 
     } else {
-        if (sink_creation_callback) {
-            return sink_creation_callback(sink, parameters);
-        } else {
-            return false;
-        }
+        return false;
     }
 }

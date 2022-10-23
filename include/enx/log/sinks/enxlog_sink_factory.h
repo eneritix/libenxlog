@@ -20,12 +20,12 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_SINK_FACTORY_H
-#define ENXLOG_CONFIG_SINK_FACTORY_H
+#ifndef ENXLOG_SINK_FACTORY_H
+#define ENXLOG_SINK_FACTORY_H
 
 #include <enx/log/enxlog.h>
 #include <enx/log/config/enxlog_config_parser.h>
-#include <enx/log/config/enxlog_config_sink_parameters.h>
+#include <enx/log/sinks/enxlog_sink_parameters.h>
 
 #include <stdbool.h>
 #include <sys/cdefs.h>
@@ -33,10 +33,9 @@
 __BEGIN_DECLS
 
 
-bool enxlog_config_sink_factory_create_sink(
+bool enxlog_sink_factory_create_sink(
     struct enxlog_sink* sink,
-    const struct enxlog_config_sink_parameters* parameters,
-    enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
+    const struct enxlog_sink_parameters* parameters,
     enxlog_config_parser_error_callback_t error_callback);
 
 

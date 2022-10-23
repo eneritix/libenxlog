@@ -20,52 +20,66 @@
     SOFTWARE.
  */
 
-#ifndef ENXLOG_CONFIG_SINK_PARAMETERS_H
-#define ENXLOG_CONFIG_SINK_PARAMETERS_H
+#ifndef ENXLOG_SINK_CONFIG_H
+#define ENXLOG_SINK_CONFIG_H
 
 #include <stdlib.h>
 #include <sys/cdefs.h>
+#include <enx/log/config/enxlog_config_parser.h>
 
 __BEGIN_DECLS
 
 
-struct enxlog_config_sink_parameter
-{
-    const char* key;
-    const char* value;
-    struct enxlog_config_sink_parameter *next;
-};
 
-struct enxlog_config_sink_parameters
+/**
+ * @brief Sink configuration entry
+ */
+struct enxlog_sink_config_entry
 {
-    struct enxlog_config_sink_parameter *head;
-    struct enxlog_config_sink_parameter *tail;
+    struct enxlog_sink_parameters *parameters;
+    struct enxlog_sink_config_entry *next;
 };
 
 /**
- * @brief Creates a sink parameters object
- *
+ * @brief Sink configuration
  */
-struct enxlog_config_sink_parameters* enxlog_config_sink_parameters_create();
+struct enxlog_sink_config
+{
+    struct enxlog_sink_config_entry *sinks;
+};
 
 /**
- * @brief Destroys a sink parameters object
- *
+ * @brief Creates a sink configuration
  */
-void enxlog_config_sink_parameters_destroy(struct enxlog_config_sink_parameters* parameters);
+struct enxlog_sink_config *enxlog_sink_config_create();
 
 /**
- * @brief Adds a parameter to the parameters object
+ * @brief Destroys a sink configuration
  *
  */
-void enxlog_config_sink_parameters_add(struct enxlog_config_sink_parameters* parameters, const char* key, const char* value);
+void enxlog_sink_config_destroy(struct enxlog_sink_config *obj);
 
 /**
- * @brief Finds a parameter in the parameters object
- * @returns NULL if the key is not found
+ * @brief Appends an item to the sink list
  *
  */
-const char* enxlog_config_sink_parameters_find(const struct enxlog_config_sink_parameters* parameters, const char* key);
+void enxlog_sink_config_append(
+    struct enxlog_sink_config *obj,
+    struct enxlog_sink_parameters *parameters);
+
+/**
+ * @brief Transforms the configuration to a sink list
+ */
+struct enxlog_sink *enxlog_sink_config_transform(
+    const struct enxlog_sink_config *obj,
+    enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
+    enxlog_config_parser_error_callback_t error_callback);
+
+/**
+ * @brief Destroys a transformed sink_list
+ */
+void enxlog_sink_config_transform_destroy(
+     struct enxlog_sink *obj);
 
 
 __END_DECLS
