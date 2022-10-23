@@ -30,20 +30,20 @@ add_subdirectory(../libenxtxt libenxtxt EXCLUDE_FROM_ALL)
 option(LIBENXLOG_CONFIG_PARSER "Include runtime configuration parser" ON)
 
 set(enxlog_SOURCES
-    src/enxlog.c
-    src/sinks/enxlog_sink_stdout.c
-    src/sinks/enxlog_sink_stdout_color.c
-    src/sinks/enxlog_sink_file.c
-    src/sinks/enxlog_sink_factory.c
-    src/sinks/enxlog_sink_parameters.c
+    source/enxlog.c
+    source/sinks/enxlog_sink_stdout.c
+    source/sinks/enxlog_sink_stdout_color.c
+    source/sinks/enxlog_sink_file.c
+    source/sinks/enxlog_sink_factory.c
+    source/sinks/enxlog_sink_parameters.c
     )
 
 if (LIBENXLOG_CONFIG_PARSER)
     set(enxlog_SOURCES
         ${enxlog_SOURCES}
-        src/config/enxlog_config_parser.c
-        src/config/enxlog_filter_config.c
-        src/config/enxlog_sink_config.c
+        source/config/enxlog_config_parser.c
+        source/config/enxlog_filter_config.c
+        source/config/enxlog_sink_config.c
         )
 endif(LIBENXLOG_CONFIG_PARSER)
 
