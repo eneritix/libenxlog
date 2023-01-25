@@ -36,14 +36,12 @@
 
 
 
-void enxlog_sink_stdout_color(
-        void* context,
-        const struct enxlog_logger* logger,
-        enum enxlog_loglevel loglevel,
-        const char* func,
-        unsigned int line,
-        const char* fmt,
-        va_list ap)
+void enxlog_sink_stdout_color_log_entry_open(
+    void* context,
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel,
+    const char *func,
+    unsigned int line)
 {
 
     // Timestamp
@@ -78,8 +76,18 @@ void enxlog_sink_stdout_color(
 
     // Function and line
     printf( "%s:%u" LOG_COLOR_RESET ": ", func, line);
+}
 
-    // Message
-    vprintf(fmt, ap);
+void enxlog_sink_stdout_color_log_entry_write(
+    void* context,
+    const char *ptr,
+    size_t length)
+{
+    fwrite(ptr, 1, length, stdout);
+}
+
+void enxlog_sink_stdout_color_log_entry_close(
+    void *context)
+{
     printf("\n");
 }

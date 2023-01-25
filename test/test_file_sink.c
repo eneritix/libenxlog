@@ -34,9 +34,14 @@ enxlog_end_filter()
 
 
 enxlog_sink_list(sink_list)
-    enxlog_sink(0, &enxlog_sink_stdout, 0)
-    enxlog_sink(0, &enxlog_sink_stdout_color, 0)
-    enxlog_sink(&sink_file_context, &enxlog_sink_file, 0)
+    enxlog_sink(
+        &sink_file_context,
+        enxlog_sink_file_init,
+        enxlog_sink_file_shutdown,
+        enxlog_sink_file_log_entry_open,
+        enxlog_sink_file_log_entry_write,
+        enxlog_sink_file_log_entry_close
+    )
 enxlog_end_sink_list()
 
 
@@ -51,12 +56,12 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (enxlog_sink_file_init(&sink_file_context, argv[1]) == -1) {
+    sink_file_context.path = argv[1];
+
+    if (!enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_tree)) {
         printf("Could not open output file\n");
         return 1;
     }
-
-    enxlog_init(LOGLEVEL_DEBUG, sink_list, NULL, filter_tree);
 
     LOG_ERROR(logger, "This is an error");
     LOG_WARN(logger, "This is a warning");

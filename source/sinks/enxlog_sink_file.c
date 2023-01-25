@@ -37,30 +37,32 @@ void enxlog_sink_file_destroy(void* context)
 {
     struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
 
-    enxlog_sink_file_deinit(ctx);
+    enxlog_sink_file_shutdown(ctx);
     free(ctx);
 }
 
 
-int enxlog_sink_file_init(struct enxlog_sink_file_context* ctx, const char* path)
+bool enxlog_sink_file_init(void *context)
 {
-    ctx->file = fopen(path, "a");
-    return (ctx->file == NULL) ? -1 : 0;
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
+
+    ctx->file = fopen(ctx->path, "a");
+    return (ctx->file != NULL);
 }
 
-void enxlog_sink_file_deinit(struct enxlog_sink_file_context* ctx)
+void enxlog_sink_file_shutdown(void *context)
 {
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
+
     fclose(ctx->file);
 }
 
-void enxlog_sink_file(
+void enxlog_sink_file_log_entry_open(
     void* context,
-    const struct enxlog_logger* logger,
+    const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
-    const char* func,
-    unsigned int line,
-    const char* fmt,
-    va_list ap)
+    const char *func,
+    unsigned int line)
 {
     struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
 
@@ -95,9 +97,23 @@ void enxlog_sink_file(
     // Function and line
     fprintf(ctx->file, "%s:%u: ", func, line);
 
-    // Message
-    vfprintf(ctx->file, fmt, ap);
-    fprintf(ctx->file, "\n");
+}
 
+void enxlog_sink_file_log_entry_write(
+    void* context,
+    const char *ptr,
+    size_t length)
+{
+    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+
+    fwrite(ptr, 1, length, ctx->file);
+}
+
+void enxlog_sink_file_log_entry_close(
+    void *context)
+{
+    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+
+    fprintf(ctx->file, "\n");
     fflush(ctx->file);
 }

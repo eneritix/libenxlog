@@ -62,7 +62,8 @@ void enxlog_filter_config_destroy(struct enxlog_filter_config *obj);
 void enxlog_filter_config_append(
     struct enxlog_filter_config *obj,
     const char *path,
-    enum enxlog_loglevel loglevel);
+    enum enxlog_loglevel loglevel,
+    enum enxlog_loglevel default_loglevel);
 
 /**
  * @brief Transforms the configuration to a filter

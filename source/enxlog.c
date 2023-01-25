@@ -21,6 +21,7 @@
  */
 
 #include <enx/log/enxlog.h>
+#include <enx/txt/format.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -31,36 +32,46 @@ static const struct enxlog_sink* enxlog_sinks = NULL;
 static const struct enxlog_lock *enxlog_lock = NULL;
 static const struct enxlog_filter *enxlog_filter = NULL;
 
-void enxlog_init(
+bool enxlog_init(
     enum enxlog_loglevel default_loglevel,
     const struct enxlog_sink *sinks,
     const struct enxlog_lock *lock,
     const struct enxlog_filter *filter)
 {
+    bool result = true;
+
     enxlog_default_loglevel = default_loglevel;
     enxlog_sinks = sinks;
     enxlog_lock = lock;
     enxlog_filter = filter;
 
+    const struct enxlog_sink* sink = enxlog_sinks;
+    while (sink->valid) {
+        if (sink->fn_init) {
+            result &= sink->fn_init(sink->context);
+        }
+        sink++;
+    }
+
+    return result;
 }
 
-void enxlog_log(
-    const struct enxlog_logger* logger,
-    enum enxlog_loglevel loglevel,
-    const char* func,
-    unsigned int line,
-    const char* fmt, ...)
+void enxlog_shutdown(void)
 {
-    // No sinks
-    if (enxlog_sinks == NULL) {
-        return;
-    }
+    const struct enxlog_sink* sink = enxlog_sinks;
+    while (sink->valid) {
+        if (sink->fn_shutdown) {
+            sink->fn_shutdown(sink->context);
+        }
 
-    // Lock
-    if (enxlog_lock) {
-        enxlog_lock->fn_lock(enxlog_lock->context);
+        sink++;
     }
+}
 
+bool enxlog_allow_output(
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel)
+{
     enum enxlog_loglevel config_loglevel = enxlog_default_loglevel;
 
     const struct enxlog_filter_entry* filter_entry = enxlog_filter->entries;
@@ -84,24 +95,154 @@ void enxlog_log(
         }
     }
 
-    if (loglevel > config_loglevel) {
-        if (enxlog_lock) {
-            enxlog_lock->fn_unlock(enxlog_lock->context);
-        }
+    return (loglevel <= config_loglevel);
+}
+
+void enxlog_log_entry_open(
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel,
+    const char *func,
+    unsigned int line)
+{
+    // No sinks
+    if (enxlog_sinks == NULL) {
         return;
+    }
+
+    // Lock
+    if (enxlog_lock) {
+        enxlog_lock->fn_lock(enxlog_lock->context);
     }
 
     // Log
     const struct enxlog_sink* sink = enxlog_sinks;
-    while (sink->fn_output) {
-        va_list args;
-        va_start(args, fmt);
-        sink->fn_output(sink->context, logger, loglevel, func, line, fmt, args);
-        va_end(args);
+    while (sink->valid) {
+        if (sink->fn_log_entry_open) {
+            sink->fn_log_entry_open(sink->context, logger, loglevel, func, line);
+        }
+        sink++;
+    }
+}
+
+void enxlog_log_entry_write(const char *ptr, size_t length)
+{
+    // Log
+    const struct enxlog_sink* sink = enxlog_sinks;
+    while (sink->valid) {
+        if (sink->fn_log_entry_write) {
+            sink->fn_log_entry_write(sink->context, ptr, length);
+        }
+        sink++;
+    }
+}
+
+void enxlog_log_entry_close(void)
+{
+    // Log
+    const struct enxlog_sink* sink = enxlog_sinks;
+    while (sink->valid) {
+        if (sink->fn_log_entry_close) {
+            sink->fn_log_entry_close(sink->context);
+        }
         sink++;
     }
 
     if (enxlog_lock) {
         enxlog_lock->fn_unlock(enxlog_lock->context);
+    }
+}
+
+void enxlog_log(
+    const struct enxlog_logger* logger,
+    enum enxlog_loglevel loglevel,
+    const char* func,
+    unsigned int line,
+    const char* format,
+    const struct enxlog_fmt_arg *args)
+{
+    if (enxlog_allow_output(logger, loglevel)) {
+
+        enxlog_log_entry_open(logger, loglevel, func, line);
+
+        do {
+            const char *ptr = format;
+            while ((*ptr != '{') && (*ptr != 0)) {
+                ptr++;
+            }
+
+            enxlog_log_entry_write(format, ptr - format);
+
+            if (*ptr == '{') {
+                while ((*ptr != '}') && (*ptr != 0)) {
+                    ptr++;
+                }
+
+                if (*ptr == '}') {
+                    if (args->fn_fmt) {
+                        args->fn_fmt(args);
+                    }
+                    args++;
+                    ptr++;
+                }
+            }
+
+            format = ptr;
+
+        } while (*format != 0);
+
+
+        enxlog_log_entry_close();
+    }
+}
+
+
+void enxlog_fmt_int(const struct enxlog_fmt_arg *arg)
+{
+    struct enxtxt_fmt_result result = enxtxt_fmt_s32_dec(arg->value._int);
+    enxlog_log_entry_write(result.str, result.length);
+}
+
+void enxlog_fmt_uint(const struct enxlog_fmt_arg *arg)
+{
+    struct enxtxt_fmt_result result = enxtxt_fmt_u32_dec(arg->value._uint);
+    enxlog_log_entry_write(result.str, result.length);
+}
+
+void enxlog_fmt_h8(const struct enxlog_fmt_arg *arg)
+{
+    struct enxtxt_fmt_result result = enxtxt_fmt_u8_hex(arg->value._uint);
+    enxlog_log_entry_write(result.str, result.length);
+}
+
+void enxlog_fmt_h16(const struct enxlog_fmt_arg *arg)
+{
+    struct enxtxt_fmt_result result = enxtxt_fmt_u16_hex(arg->value._uint);
+    enxlog_log_entry_write(result.str, result.length);
+}
+
+void enxlog_fmt_h32(const struct enxlog_fmt_arg *arg)
+{
+    struct enxtxt_fmt_result result = enxtxt_fmt_u32_hex(arg->value._uint);
+    enxlog_log_entry_write(result.str, result.length);
+}
+
+void enxlog_fmt_str(const struct enxlog_fmt_arg *arg)
+{
+    enxlog_log_entry_write(arg->value._str, strlen(arg->value._str));
+}
+
+void enxlog_fmt_h8_array(const struct enxlog_fmt_arg *arg)
+{
+    const struct enxlog_fmt_h8_array_metadata *data = (const struct enxlog_fmt_h8_array_metadata *)arg->value._user;
+    char format_buffer[32];
+
+    const unsigned char *ptr = data->ptr;
+    size_t length = data->length;
+
+    while (length) {
+        struct enxtxt_fmt_array_result result = enxtxt_fmt_u8_hex_array(ptr, length, " ", format_buffer, sizeof(format_buffer));
+        enxlog_log_entry_write(format_buffer, result.bytes_written);
+        ptr += result.entries_processed;
+        length -= result.entries_processed;
     }
 }

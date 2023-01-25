@@ -119,9 +119,13 @@ struct enxlog_sink *enxlog_sink_config_transform(
 
     } else {
         // Terminate
+        result[count].valid = false;
         result[count].context = NULL;
-        result[count].fn_output = NULL;
+        result[count].fn_init = NULL;
         result[count].fn_shutdown = NULL;
+        result[count].fn_log_entry_open = NULL;
+        result[count].fn_log_entry_write = NULL;
+        result[count].fn_log_entry_close = NULL;
     }
 
     return result;
@@ -131,7 +135,7 @@ void enxlog_sink_config_transform_destroy(
      struct enxlog_sink *obj)
 {
     struct enxlog_sink *ptr = obj;
-    while (ptr->fn_output) {
+    while (ptr->valid) {
         if (ptr->fn_shutdown) {
             ptr->fn_shutdown(ptr->context);
         }

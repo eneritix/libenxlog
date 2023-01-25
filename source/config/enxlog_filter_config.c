@@ -75,7 +75,8 @@ void enxlog_filter_config_destroy(struct enxlog_filter_config *obj)
 void enxlog_filter_config_append(
     struct enxlog_filter_config *obj,
     const char *path,
-    enum enxlog_loglevel loglevel)
+    enum enxlog_loglevel loglevel,
+    enum enxlog_loglevel default_loglevel)
 {
     struct enxlog_filter_config_entry *entry = obj->root;
     struct enxtxt_tokenizer tokenizer;
@@ -88,7 +89,7 @@ void enxlog_filter_config_append(
         entry = enxlog_filter_config_entry_append_child(
             entry,
             path,
-            token.final ? loglevel : LOGLEVEL_NONE);
+            token.final ? loglevel : default_loglevel);
         free(path);
     }
 }

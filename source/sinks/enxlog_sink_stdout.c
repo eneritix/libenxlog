@@ -26,17 +26,13 @@
 #include <time.h>
 #include <sys/time.h>
 
-
-void enxlog_sink_stdout(
-        void* context,
-        const struct enxlog_logger* logger,
-        enum enxlog_loglevel loglevel,
-        const char* func,
-        unsigned int line,
-        const char* fmt,
-        va_list ap)
+void enxlog_sink_stdout_log_entry_open(
+    void* context,
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel,
+    const char *func,
+    unsigned int line)
 {
-
     // Timestamp
     struct timeval curTime;
     gettimeofday(&curTime, NULL);
@@ -67,8 +63,18 @@ void enxlog_sink_stdout(
 
     // Function and line
     printf( "%s:%u: ", func, line);
+}
 
-    // Message
-    vprintf(fmt, ap);
+void enxlog_sink_stdout_log_entry_write(
+    void* context,
+    const char *ptr,
+    size_t length)
+{
+    fwrite(ptr, 1, length, stdout);
+}
+
+void enxlog_sink_stdout_log_entry_close(
+    void *context)
+{
     printf("\n");
 }

@@ -23,15 +23,19 @@
 #ifndef ENXLOG_H
 #define ENXLOG_H
 
-
-#include <stdarg.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <sys/cdefs.h>
 
 
 __BEGIN_DECLS
 
+
+struct enxlog_fmt_arg;
+
 /**
- * @brief Loglevel enumeration
+ * Loglevel enumeration
  *
  */
 enum enxlog_loglevel
@@ -43,8 +47,12 @@ enum enxlog_loglevel
     LOGLEVEL_DEBUG
 };
 
+/** \defgroup logger_functions Logger Functions
+ * @{
+ */
+
 /**
- * @brief Logger
+ * Logger
  *
  */
 struct enxlog_logger
@@ -53,8 +61,27 @@ struct enxlog_logger
 };
 
 /**
- * @brief Filter entry
+ * Declare a logger
  *
+ */
+#define LOGGER_DECLARE(name, ...) \
+static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
+    { \
+        .path = (const char* []) { \
+        __VA_ARGS__ \
+        ,0 \
+        } \
+    } \
+}
+
+/** @} */
+
+/** \defgroup filter_functions Filter Functions
+ * @{
+ */
+
+/**
+ * Filter entry
  */
 struct enxlog_filter_entry
 {
@@ -64,8 +91,7 @@ struct enxlog_filter_entry
 };
 
 /**
- * @brief Filter
- *
+ * Filter
  */
 struct enxlog_filter
 {
@@ -73,27 +99,117 @@ struct enxlog_filter
 };
 
 /**
- * @brief Sink
+ * Start a filter
+ */
+#define enxlog_filter(_name)                                \
+const struct enxlog_filter* _name =                         \
+    (const struct enxlog_filter*)                           \
+    (const struct enxlog_filter []) {                       \
+    {                                                       \
+    .entries = (struct enxlog_filter_entry*)                \
+               (const struct enxlog_filter_entry []) {
+
+/**
+ * End a filter
+ */
+#define enxlog_end_filter()                                 \
+            { .path = 0 }                                   \
+            }                                               \
+        }                                                   \
+    };
+
+/**
+ * Start a filter entry
+ */
+#define enxlog_filter_entry(_path, _loglevel)               \
+    {                                                       \
+        .path = _path,                                      \
+        .loglevel = _loglevel,                              \
+        .children = (struct enxlog_filter_entry*)           \
+            (const struct enxlog_filter_entry []) {
+
+/**
+ * End a filter entry
+ */
+#define enxlog_end_filter_entry()                           \
+            { .path = 0 }                                   \
+        }                                                   \
+    },
+
+/** @} */
+
+
+/** \defgroup sink_functions Sink Functions
+ * @{
+ */
+
+/**
+ * Sink
  *
  */
 struct enxlog_sink
 {
-    void (*fn_output)(
+    bool valid;
+    void *context;
+
+    bool (*fn_init)(void *context);
+    void (*fn_shutdown)(void *context);
+
+    void (*fn_log_entry_open)(
         void* context,
         const struct enxlog_logger *logger,
         enum enxlog_loglevel loglevel,
         const char *func,
-        unsigned int line,
-        const char *fmt,
-        va_list ap);
+        unsigned int line);
 
-    void (*fn_shutdown)(void *context);
+    void (*fn_log_entry_write)(
+        void* context,
+        const char *ptr,
+        size_t length);
 
-    void *context;
+    void (*fn_log_entry_close)(void *context);
 };
 
 /**
- * @brief Lock
+ * Start a sink list
+ *
+ */
+#define enxlog_sink_list(_name)                             \
+const struct enxlog_sink *_name =                           \
+    (const struct enxlog_sink*)                             \
+    (const struct enxlog_sink []) {
+
+/**
+ * End a sink list
+ *
+ */
+#define enxlog_end_sink_list()                              \
+    { .valid = false }                                      \
+};
+
+/**
+ * Declare a sink
+ *
+ */
+#define enxlog_sink(_context, _fn_init, _fn_shutdown, _fn_log_entry_open, _fn_log_entry_write, _fn_log_entry_close)                                    \
+    {                                                       \
+        .valid = true,                                      \
+        .context = _context,                                \
+        .fn_init = _fn_init,                                \
+        .fn_shutdown = _fn_shutdown,                        \
+        .fn_log_entry_open = _fn_log_entry_open,            \
+        .fn_log_entry_write = _fn_log_entry_write,          \
+        .fn_log_entry_close = _fn_log_entry_close           \
+    },
+
+/** @} */
+
+/** \defgroup lock_functions Lock Functions
+ * @{
+ */
+
+/**
+ * Lock
  *
  */
 struct enxlog_lock
@@ -105,78 +221,7 @@ struct enxlog_lock
 
 
 /**
- * @brief Start a filter
- *
- */
-#define enxlog_filter(_name)                                \
-const struct enxlog_filter* _name =                         \
-    (const struct enxlog_filter*)                           \
-    (const struct enxlog_filter []) {                       \
-    {                                                       \
-    .entries = (struct enxlog_filter_entry*)                \
-               (const struct enxlog_filter_entry []) {
-
-
-/**
- * @brief End a filter
- *
- */
-#define enxlog_end_filter()                                 \
-            { .path = 0 }                                   \
-            }                                               \
-        }                                                   \
-    };
-
-/**
- * @brief Start a filter entry
- *
- */
-#define enxlog_filter_entry(_path, _loglevel)               \
-    {                                                       \
-        .path = _path,                                      \
-        .loglevel = _loglevel,                              \
-        .children = (struct enxlog_filter_entry*)           \
-            (const struct enxlog_filter_entry []) {
-
-/**
- * @brief End a filter entry
- *
- */
-#define enxlog_end_filter_entry()                           \
-            { .path = 0 }                                   \
-        }                                                   \
-    },
-
-/**
- * @brief Start a sink list
- *
- */
-#define enxlog_sink_list(_name)                             \
-const struct enxlog_sink *_name =                           \
-    (const struct enxlog_sink*)                             \
-    (const struct enxlog_sink []) {
-
-/**
- * @brief End a sink list
- *
- */
-#define enxlog_end_sink_list()                              \
-    { .fn_output = 0 }                                      \
-};
-
-/**
- * @brief Declare a sink
- *
- */
-#define enxlog_sink(_context, _fn_output, _fn_shutdown)     \
-    {                                                       \
-        .fn_output = _fn_output,                            \
-        .fn_shutdown = _fn_shutdown,                        \
-        .context = _context                                 \
-    },
-
-/**
- * @brief Declare a lock
+ * Declare a lock
  *
  */
 #define enxlog_lock(_name, _context, _fn_lock, _fn_unlock)  \
@@ -190,52 +235,231 @@ const struct enxlog_lock *_name =                           \
     }                                                       \
 };
 
-/**
- * @brief Declare a logger
- *
+/** @} */
+
+
+/** \defgroup general_functions General Functions
+ *  @{
  */
-#define LOGGER_DECLARE(name, ...) \
-static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
-    { \
-        .path = (const char* []) { \
-        __VA_ARGS__ \
-        ,0 \
-        } \
-    } \
-}
 
 
 /**
- * @brief Initialize the logging library
+ * Initialize the logging library
  *
  * @param default_loglevel The default loglevel
  * @param sinks A list of sinks
  * @param lock The lock to use, or NULL if locking is not required
  * @param filter_list The filter list
  */
-void enxlog_init(
+bool enxlog_init(
     enum enxlog_loglevel default_loglevel,
     const struct enxlog_sink *sinks,
     const struct enxlog_lock *lock,
     const struct enxlog_filter *filter);
 
 /**
- * @brief Log function
+ * Shuts down the logging library
  *
- * This function is called by the log macros and should not be called directly
+ */
+void enxlog_shutdown(void);
+
+/**
+ * Returns true when output is allowed for the given logger and loglevel
+ * @private
+ */
+bool enxlog_allow_output(
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel);
+
+/**
+ * Opens a log entry
+ * @private
+ */
+void enxlog_log_entry_open(
+    const struct enxlog_logger* logger,
+    enum enxlog_loglevel loglevel,
+    const char* func,
+    unsigned int line);
+
+/**
+ * Writes to a log entry
+ * @private
+ */
+void enxlog_log_entry_write(
+    const char *ptr,
+    size_t length);
+
+/**
+ * Closes a log entry
+ * @private
+ */
+void enxlog_log_entry_close(void);
+
+/**
+ * Called by the logging macros
+ * @private
  */
 void enxlog_log(
-        const struct enxlog_logger* logger,
-        enum enxlog_loglevel loglevel,
-        const char* func,
-        unsigned int line,
-        const char* fmt, ...);
+    const struct enxlog_logger* logger,
+    enum enxlog_loglevel loglevel,
+    const char* func,
+    unsigned int line,
+    const char* format,
+    const struct enxlog_fmt_arg *args);
+
+/** @} */
 
 
-#define LOG_ERROR(logger, fmt, ...)  do { enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_WARN(logger, fmt, ...)   do { enxlog_log(logger, LOGLEVEL_WARN,  __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_INFO(logger, fmt, ...)   do { enxlog_log(logger, LOGLEVEL_INFO,  __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
-#define LOG_DEBUG(logger, fmt, ...)  do { enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, fmt, ##__VA_ARGS__); } while(0)
+/** \defgroup logging_macros Logging macros
+ *  @{
+ */
+
+/* Log macros */
+
+/**
+ * Logs an error
+ * @param logger The logger
+ * @param format A format string
+ * @param args A variable list of arguments
+ */
+#define LOG_ERROR(logger, format, ...)                                                  \
+do {                                                                                    \
+    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    __VA_ARGS__                                                                         \
+    };                                                                                  \
+    enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, format, __args);         \
+} while (0)
+
+#define LOG_WARN(logger, format, ...)                                                   \
+do {                                                                                    \
+    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    __VA_ARGS__                                                                         \
+    };                                                                                  \
+    enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, format, __args);          \
+} while (0)
+
+#define LOG_INFO(logger, format, ...)                                                   \
+do {                                                                                    \
+    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    __VA_ARGS__                                                                         \
+    };                                                                                  \
+    enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, format, __args);          \
+} while (0)
+
+#define LOG_DEBUG(logger, format, ...)                                                  \
+do {                                                                                    \
+    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    __VA_ARGS__                                                                         \
+    };                                                                                  \
+    enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, format, __args);         \
+} while (0)
+
+/** @} */
+
+
+/** \defgroup formatting Formatting functions
+ *  @{
+ */
+
+struct enxlog_fmt_arg
+{
+    void (*fn_fmt)(const struct enxlog_fmt_arg *arg);
+    union {
+        float _flt;
+        double _dbl;
+        int _int;
+        unsigned int _uint;
+        const char *_str;
+        void * _user;
+    } value;
+};
+
+struct enxlog_fmt_h8_array_metadata
+{
+    const uint8_t *ptr;
+    size_t length;
+};
+
+struct enxlog_fmt_h16_array_metadata
+{
+    const uint16_t *ptr;
+    size_t length;
+};
+
+struct enxlog_fmt_h32_array_metadata
+{
+    const uint32_t *ptr;
+    size_t length;
+};
+
+/* Internal format functions */
+void enxlog_fmt_int(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_uint(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_h8(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_h16(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_h32(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_str(const struct enxlog_fmt_arg *arg);
+void enxlog_fmt_h8_array(const struct enxlog_fmt_arg *arg);
+
+/**
+ * Formats a character array
+ *
+ * \param _val The value to format
+ */
+#define f_str(_val) \
+    { .fn_fmt = enxlog_fmt_str, .value._str  = val }
+
+/**
+ * Formats a signed integer as decimal
+ *
+ * \param _val The value to format
+ */
+#define f_int(_val) \
+    { .fn_fmt = enxlog_fmt_int, .value._int  = _val }
+
+/**
+ * Formats an unsigned integer as decimal
+ *
+ * \param _val The value to format
+ */
+#define f_uint(_val) \
+    { .fn_fmt = enxlog_fmt_uint, .value._uint = _val }
+
+/**
+ * Formats an 8 bit unsigned integer as hex
+ *
+ * \param _val The value to format
+ */
+#define f_h8(_val) \
+    { .fn_fmt = enxlog_fmt_h8, .value._uint = _val }
+
+/**
+ * Formats a 16 bit unsigned integer as hex
+ *
+ * \param _val The value to format
+ */
+#define f_h16(_val) \
+    { .fn_fmt = enxlog_fmt_h16, .value._uint = _val }
+
+/**
+ * Formats a 32 bit unsigned integer as hex
+ *
+ * \param _val The value to format
+ */
+#define f_h32(_val) \
+    { .fn_fmt = enxlog_fmt_h32, .value._uint = _val }
+
+/**
+ * Formats an 8 bit integer array as hex
+ *
+ * \param _ptr A pointer to the array
+ * \param _length The length of the array
+ */
+#define f_h8_array(_ptr, _length) \
+    { .fn_fmt = enxlog_fmt_h8_array, .value._user = (struct enxlog_fmt_h8_array_metadata []) {{ .ptr = _ptr, .length = _length}} }
+
+
+/** @} */
 
 
 __END_DECLS;

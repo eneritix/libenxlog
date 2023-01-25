@@ -33,6 +33,7 @@ __BEGIN_DECLS
 
 struct enxlog_sink_file_context
 {
+    const char* path;
     FILE* file;
 };
 
@@ -40,17 +41,23 @@ struct enxlog_sink_file_context
 struct enxlog_sink_file_context* enxlog_sink_file_create();
 void enxlog_sink_file_destroy(void* context);
 
-int enxlog_sink_file_init(struct enxlog_sink_file_context* ctx, const char* path);
-void enxlog_sink_file_deinit(struct enxlog_sink_file_context* ctx);
+bool enxlog_sink_file_init(void *context);
+void enxlog_sink_file_shutdown(void *context);
 
-void enxlog_sink_file(
-        void* context,
-        const struct enxlog_logger* logger,
-        enum enxlog_loglevel loglevel,
-        const char* func,
-        unsigned int line,
-        const char* fmt,
-        va_list ap);
+void enxlog_sink_file_log_entry_open(
+    void* context,
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel,
+    const char *func,
+    unsigned int line);
+
+void enxlog_sink_file_log_entry_write(
+    void* context,
+    const char *ptr,
+    size_t length);
+
+void enxlog_sink_file_log_entry_close(
+    void *context);
 
 
 __END_DECLS

@@ -300,7 +300,7 @@ static bool enxlog_config_parse_sections(struct enxlog_config *config, yaml_pars
                                     parser,
                                     enxlog_config_parse_section_sink,
                                     sink_parameters)) {
-                                    
+
                                     enxlog_sink_config_append(config->sink_config, sink_parameters);
 
                                 } else {
@@ -375,7 +375,7 @@ static void enxlog_config_parse_section_sink(void *ctx, const char *key, const c
 static void enxlog_config_parse_section_filter(void *ctx, const char *key, const char *value)
 {
     struct enxlog_config *config = (struct enxlog_config *)ctx;
-    enxlog_filter_config_append(config->filter_config, key, enxlog_config_parse_loglevel(value));
+    enxlog_filter_config_append(config->filter_config, key, enxlog_config_parse_loglevel(value), config->default_loglevel);
 }
 
 

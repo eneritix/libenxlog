@@ -29,33 +29,38 @@
 
 
 static bool enxlog_sink_factory_create_stdout_sink(
-        struct enxlog_sink* sink,
-        const struct enxlog_sink_parameters* parameters,
-        enxlog_config_parser_error_callback_t error_callback)
+    struct enxlog_sink* sink,
+    const struct enxlog_sink_parameters* parameters,
+    enxlog_config_parser_error_callback_t error_callback)
 {
-    sink->fn_output = enxlog_sink_stdout;
+    sink->fn_log_entry_open = enxlog_sink_stdout_log_entry_open;
+    sink->fn_log_entry_write = enxlog_sink_stdout_log_entry_write;
+    sink->fn_log_entry_close = enxlog_sink_stdout_log_entry_close;
     sink->fn_shutdown = NULL;
     sink->context = NULL;
+    sink->valid = true;
 
     return true;
 }
 
 static bool enxlog_sink_factory_create_stdout_color_sink(
-        struct enxlog_sink* sink,
-        const struct enxlog_sink_parameters* parameters,
-        enxlog_config_parser_error_callback_t error_callback)
+    struct enxlog_sink* sink,
+    const struct enxlog_sink_parameters* parameters,
+    enxlog_config_parser_error_callback_t error_callback)
 {
-    sink->fn_output = enxlog_sink_stdout_color;
-    sink->fn_shutdown = NULL;
+    sink->fn_log_entry_open = enxlog_sink_stdout_color_log_entry_open;
+    sink->fn_log_entry_write = enxlog_sink_stdout_color_log_entry_write;
+    sink->fn_log_entry_close = enxlog_sink_stdout_color_log_entry_close;
     sink->context = NULL;
+    sink->valid = true;
 
     return true;
 }
 
 static bool enxlog_sink_factory_create_file_sink(
-        struct enxlog_sink* sink,
-        const struct enxlog_sink_parameters* parameters,
-        enxlog_config_parser_error_callback_t error_callback)
+    struct enxlog_sink* sink,
+    const struct enxlog_sink_parameters* parameters,
+    enxlog_config_parser_error_callback_t error_callback)
 {
     const char* path = enxlog_sink_parameters_find(parameters, "path");
     if (path == NULL) {
@@ -64,15 +69,20 @@ static bool enxlog_sink_factory_create_file_sink(
     }
 
     struct enxlog_sink_file_context* context = enxlog_sink_file_create();
-    if (enxlog_sink_file_init(context, path) == -1) {
+    context->path = path;
+    context->file = NULL;
+    if (!enxlog_sink_file_init(context)) {
         error_callback(0, 0, "Could not open log file");
         free(context);
         return false;
     }
 
     sink->context = context;
-    sink->fn_output = enxlog_sink_file;
-    sink->fn_shutdown = enxlog_sink_file_destroy;
+    sink->fn_log_entry_open = enxlog_sink_file_log_entry_open;
+    sink->fn_log_entry_write = enxlog_sink_file_log_entry_write;
+    sink->fn_log_entry_close = enxlog_sink_file_log_entry_close;
+    sink->fn_shutdown = enxlog_sink_file_shutdown;
+    sink->valid = true;
 
     return true;
 }

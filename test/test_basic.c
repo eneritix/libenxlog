@@ -43,13 +43,21 @@ enxlog_end_filter()
 
 
 enxlog_sink_list(sink_list)
-    enxlog_sink(0, &enxlog_sink_stdout, 0)
+    enxlog_sink(
+        NULL,
+        NULL,
+        NULL,
+        enxlog_sink_stdout_log_entry_open,
+        enxlog_sink_stdout_log_entry_write,
+        enxlog_sink_stdout_log_entry_close
+    )
 enxlog_end_sink_list()
 
 
 
 int main(void)
 {
+    size_t i;
 
     print_filter_tree(filter_tree);
 
@@ -58,6 +66,25 @@ int main(void)
     LOG_ERROR(logger_one, "This should print");
     LOG_WARN(logger_two, "This should print");
     LOG_INFO(logger_three, "This should print");
+
+    unsigned int value = 1234;
+    LOG_INFO(
+        logger_one,
+        "f_int={}, f_uint={}, f_h8={}, f_h16={}, f_h32={}",
+        f_int(value),
+        f_uint(value),
+        f_h8(value),
+        f_h16(value),
+        f_h32(value));
+
+    unsigned char hexbuf[] = { 0xA5, 0xB2, 0xAA, 0xFF };
+    LOG_INFO(logger_one, "hexbuf=[ {} ]", f_h8_array(hexbuf, sizeof(hexbuf)));
+
+    unsigned char largebuf[256];
+    for (i=0; i < sizeof(largebuf); ++i) {
+        largebuf[i] = i;
+    }
+    LOG_INFO(logger_one, "largebuf=[ {} ]", f_h8_array(largebuf, sizeof(largebuf)));
 
     return 0;
 }
