@@ -27,12 +27,10 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <sys/cdefs.h>
+#include <enx/txt/fstr.h>
 
 
 __BEGIN_DECLS
-
-
-struct enxlog_fmt_arg;
 
 /**
  * Loglevel enumeration
@@ -285,7 +283,8 @@ void enxlog_log_entry_open(
  * Writes to a log entry
  * @private
  */
-void enxlog_log_entry_write(
+bool enxlog_log_entry_write(
+    void *context,
     const char *ptr,
     size_t length);
 
@@ -305,7 +304,7 @@ void enxlog_log(
     const char* func,
     unsigned int line,
     const char* format,
-    const struct enxlog_fmt_arg *args);
+    const struct enxtxt_fstr_arg *args);
 
 /** @} */
 
@@ -324,7 +323,7 @@ void enxlog_log(
  */
 #define LOG_ERROR(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, format, __args);         \
@@ -332,7 +331,7 @@ do {                                                                            
 
 #define LOG_WARN(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, format, __args);          \
@@ -340,7 +339,7 @@ do {                                                                            
 
 #define LOG_INFO(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, format, __args);          \
@@ -348,116 +347,11 @@ do {                                                                            
 
 #define LOG_DEBUG(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxlog_fmt_arg* __args = (const struct enxlog_fmt_arg []) {            \
+    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, format, __args);         \
 } while (0)
-
-/** @} */
-
-
-/** \defgroup formatting Formatting functions
- *  @{
- */
-
-struct enxlog_fmt_arg
-{
-    void (*fn_fmt)(const struct enxlog_fmt_arg *arg);
-    union {
-        float _flt;
-        double _dbl;
-        int _int;
-        unsigned int _uint;
-        const char *_str;
-        void * _user;
-    } value;
-};
-
-struct enxlog_fmt_h8_array_metadata
-{
-    const uint8_t *ptr;
-    size_t length;
-};
-
-struct enxlog_fmt_h16_array_metadata
-{
-    const uint16_t *ptr;
-    size_t length;
-};
-
-struct enxlog_fmt_h32_array_metadata
-{
-    const uint32_t *ptr;
-    size_t length;
-};
-
-/* Internal format functions */
-void enxlog_fmt_int(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_uint(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_h8(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_h16(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_h32(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_str(const struct enxlog_fmt_arg *arg);
-void enxlog_fmt_h8_array(const struct enxlog_fmt_arg *arg);
-
-/**
- * Formats a character array
- *
- * \param _val The value to format
- */
-#define f_str(_val) \
-    { .fn_fmt = enxlog_fmt_str, .value._str  = val }
-
-/**
- * Formats a signed integer as decimal
- *
- * \param _val The value to format
- */
-#define f_int(_val) \
-    { .fn_fmt = enxlog_fmt_int, .value._int  = _val }
-
-/**
- * Formats an unsigned integer as decimal
- *
- * \param _val The value to format
- */
-#define f_uint(_val) \
-    { .fn_fmt = enxlog_fmt_uint, .value._uint = _val }
-
-/**
- * Formats an 8 bit unsigned integer as hex
- *
- * \param _val The value to format
- */
-#define f_h8(_val) \
-    { .fn_fmt = enxlog_fmt_h8, .value._uint = _val }
-
-/**
- * Formats a 16 bit unsigned integer as hex
- *
- * \param _val The value to format
- */
-#define f_h16(_val) \
-    { .fn_fmt = enxlog_fmt_h16, .value._uint = _val }
-
-/**
- * Formats a 32 bit unsigned integer as hex
- *
- * \param _val The value to format
- */
-#define f_h32(_val) \
-    { .fn_fmt = enxlog_fmt_h32, .value._uint = _val }
-
-/**
- * Formats an 8 bit integer array as hex
- *
- * \param _ptr A pointer to the array
- * \param _length The length of the array
- */
-#define f_h8_array(_ptr, _length) \
-    { .fn_fmt = enxlog_fmt_h8_array, .value._user = (struct enxlog_fmt_h8_array_metadata []) {{ .ptr = _ptr, .length = _length}} }
-
 
 /** @} */
 

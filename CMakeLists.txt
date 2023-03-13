@@ -66,6 +66,9 @@ target_link_libraries(test_file_sink enxlog)
 add_executable(test_noinit test/test_noinit.c test/test_utils.c)
 target_link_libraries(test_noinit enxlog)
 
+add_executable(test_custom_formatter test/test_custom_formatter.c test/test_utils.c)
+target_link_libraries(test_custom_formatter enxlog)
+
 if (LIBENXLOG_CONFIG_PARSER)
     add_executable(test_config_parser test/test_config_parser.c test/test_utils.c)
     target_link_libraries(test_config_parser enxlog)

@@ -124,7 +124,7 @@ void enxlog_log_entry_open(
     }
 }
 
-void enxlog_log_entry_write(const char *ptr, size_t length)
+bool enxlog_log_entry_write(void *context, const char *ptr, size_t length)
 {
     // Log
     const struct enxlog_sink* sink = enxlog_sinks;
@@ -134,6 +134,8 @@ void enxlog_log_entry_write(const char *ptr, size_t length)
         }
         sink++;
     }
+
+    return true;
 }
 
 void enxlog_log_entry_close(void)
@@ -158,91 +160,12 @@ void enxlog_log(
     const char* func,
     unsigned int line,
     const char* format,
-    const struct enxlog_fmt_arg *args)
+    const struct enxtxt_fstr_arg *args)
 {
     if (enxlog_allow_output(logger, loglevel)) {
 
         enxlog_log_entry_open(logger, loglevel, func, line);
-
-        do {
-            const char *ptr = format;
-            while ((*ptr != '{') && (*ptr != 0)) {
-                ptr++;
-            }
-
-            enxlog_log_entry_write(format, ptr - format);
-
-            if (*ptr == '{') {
-                while ((*ptr != '}') && (*ptr != 0)) {
-                    ptr++;
-                }
-
-                if (*ptr == '}') {
-                    if (args->fn_fmt) {
-                        args->fn_fmt(args);
-                    }
-                    args++;
-                    ptr++;
-                }
-            }
-
-            format = ptr;
-
-        } while (*format != 0);
-
-
+        _enxtxt_fstr_cb(enxlog_log_entry_write, NULL, format, args);
         enxlog_log_entry_close();
-    }
-}
-
-
-void enxlog_fmt_int(const struct enxlog_fmt_arg *arg)
-{
-    struct enxtxt_fmt_result result = enxtxt_fmt_s32_dec(arg->value._int);
-    enxlog_log_entry_write(result.str, result.length);
-}
-
-void enxlog_fmt_uint(const struct enxlog_fmt_arg *arg)
-{
-    struct enxtxt_fmt_result result = enxtxt_fmt_u32_dec(arg->value._uint);
-    enxlog_log_entry_write(result.str, result.length);
-}
-
-void enxlog_fmt_h8(const struct enxlog_fmt_arg *arg)
-{
-    struct enxtxt_fmt_result result = enxtxt_fmt_u8_hex(arg->value._uint);
-    enxlog_log_entry_write(result.str, result.length);
-}
-
-void enxlog_fmt_h16(const struct enxlog_fmt_arg *arg)
-{
-    struct enxtxt_fmt_result result = enxtxt_fmt_u16_hex(arg->value._uint);
-    enxlog_log_entry_write(result.str, result.length);
-}
-
-void enxlog_fmt_h32(const struct enxlog_fmt_arg *arg)
-{
-    struct enxtxt_fmt_result result = enxtxt_fmt_u32_hex(arg->value._uint);
-    enxlog_log_entry_write(result.str, result.length);
-}
-
-void enxlog_fmt_str(const struct enxlog_fmt_arg *arg)
-{
-    enxlog_log_entry_write(arg->value._str, strlen(arg->value._str));
-}
-
-void enxlog_fmt_h8_array(const struct enxlog_fmt_arg *arg)
-{
-    const struct enxlog_fmt_h8_array_metadata *data = (const struct enxlog_fmt_h8_array_metadata *)arg->value._user;
-    char format_buffer[32];
-
-    const unsigned char *ptr = data->ptr;
-    size_t length = data->length;
-
-    while (length) {
-        struct enxtxt_fmt_array_result result = enxtxt_fmt_u8_hex_array(ptr, length, " ", format_buffer, sizeof(format_buffer));
-        enxlog_log_entry_write(format_buffer, result.bytes_written);
-        ptr += result.entries_processed;
-        length -= result.entries_processed;
     }
 }
