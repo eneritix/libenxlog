@@ -20,7 +20,7 @@
     SOFTWARE.
  */
 
-#include <enx/log/sinks/enxlog_sink_parameters.h>
+#include <enx/log/config/enxlog_sink_parameters.h>
 
 #include <stdlib.h>
 #include <string.h>

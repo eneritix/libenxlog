@@ -20,7 +20,7 @@
     SOFTWARE.
  */
 
-#include <enx/log/sinks/enxlog_sink_factory.h>
+#include <enx/log/config/enxlog_sink_factory.h>
 #include <enx/log/sinks/enxlog_sink_stdout.h>
 #include <enx/log/sinks/enxlog_sink_stdout_color.h>
 #include <enx/log/sinks/enxlog_sink_file.h>

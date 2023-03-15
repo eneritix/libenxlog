@@ -356,6 +356,6 @@ do {                                                                            
 /** @} */
 
 
-__END_DECLS;
+__END_DECLS
 
 #endif

@@ -62,6 +62,7 @@ void enxlog_sink_stdout_color_log_entry_open(
         case LOGLEVEL_WARN: printf(LOG_COLOR_WHITE  "-- WARN  -- " LOG_COLOR_RESET); break;
         case LOGLEVEL_INFO: printf(LOG_COLOR_RESET  "-- INFO  -- "); break;
         case LOGLEVEL_DEBUG: printf(LOG_COLOR_RESET "-- DEBUG -- "); break;
+        default : break;
     }
 
 
@@ -83,11 +84,13 @@ void enxlog_sink_stdout_color_log_entry_write(
     const char *ptr,
     size_t length)
 {
+    (void)context;
     fwrite(ptr, 1, length, stdout);
 }
 
 void enxlog_sink_stdout_color_log_entry_close(
     void *context)
 {
+    (void)context;
     printf("\n");
 }

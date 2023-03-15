@@ -24,7 +24,7 @@
 #define ENXLOG_CONFIG_PARSER_H
 
 #include <enx/log/enxlog.h>
-#include <enx/log/sinks/enxlog_sink_parameters.h>
+#include <enx/log/config/enxlog_sink_parameters.h>
 
 #include <stdbool.h>
 #include <sys/cdefs.h>

@@ -34,8 +34,6 @@ set(enxlog_SOURCES
     source/sinks/enxlog_sink_stdout.c
     source/sinks/enxlog_sink_stdout_color.c
     source/sinks/enxlog_sink_file.c
-    source/sinks/enxlog_sink_factory.c
-    source/sinks/enxlog_sink_parameters.c
     )
 
 if (LIBENXLOG_CONFIG_PARSER)
@@ -44,12 +42,16 @@ if (LIBENXLOG_CONFIG_PARSER)
         source/config/enxlog_config_parser.c
         source/config/enxlog_filter_config.c
         source/config/enxlog_sink_config.c
+        source/config/enxlog_sink_factory.c
+        source/config/enxlog_sink_parameters.c
         )
 endif(LIBENXLOG_CONFIG_PARSER)
 
 add_library(enxlog STATIC
     ${enxlog_SOURCES}
 )
+
+target_compile_options(enxlog PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter)
 
 target_include_directories(enxlog PUBLIC include)
 

@@ -21,7 +21,7 @@
  */
 
 #include <enx/log/enxlog.h>
-#include <enx/log/sinks/enxlog_sink_factory.h>
+#include <enx/log/config/enxlog_sink_factory.h>
 #include <enx/log/config/enxlog_config_parser.h>
 
 #include <stdio.h>

@@ -21,7 +21,7 @@
  */
 
 #include <enx/log/config/enxlog_config_parser.h>
-#include <enx/log/sinks/enxlog_sink_parameters.h>
+#include <enx/log/config/enxlog_sink_parameters.h>
 
 #include "enxlog_filter_config.h"
 #include "enxlog_sink_config.h"
