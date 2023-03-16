@@ -27,4 +27,4 @@ html_static_path = ['_static']
 
 # Breathe Configuration
 breathe_default_project = 'libenxlog'
-
+breathe_domain_by_extension = {"h" : "c"}

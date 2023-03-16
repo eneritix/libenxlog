@@ -61,7 +61,7 @@ Define a compile-time sink list as follows:
    :param fn_log_entry_open: The sink log entry open function. See :c:func:`enxlog_sink_log_entry_open_fn_t`
    :param fn_log_entry_open: The sink log entry write function. See :c:func:`enxlog_sink_log_entry_write_fn_t`
    :param fn_log_entry_open: The sink log entry close function. See :c:func:`enxlog_sink_log_entry_close_fn_t`
-   
+
 
 Defining a lock
 ---------------
@@ -79,7 +79,13 @@ Define a compile-time lock as follows:
 Initialization function
 -----------------------
 
-The logging system is initialized with the bleh function.
+The logging system is initialized with the :c:func:`enxlog_init()` function.
 
+.. doxygenfunction:: enxlog_init
+    :no-link:
 
+Example
+-------
+
+The following example shows how to initialize the library at compile time:
 

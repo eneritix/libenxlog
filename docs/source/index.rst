@@ -12,6 +12,8 @@ Welcome to libenxlog's documentation!
 
    introduction
    compile_time_init
+   runtime_init
+   logging
    api_reference
 
 

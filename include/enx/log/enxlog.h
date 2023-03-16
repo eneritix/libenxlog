@@ -97,7 +97,8 @@ struct enxlog_filter
 };
 
 /**
- * Start a filter
+ * Starts a filter definition
+ * @param _name The variable name of the filter
  */
 #define enxlog_filter(_name)                                \
 const struct enxlog_filter* _name =                         \
@@ -108,7 +109,7 @@ const struct enxlog_filter* _name =                         \
                (const struct enxlog_filter_entry []) {
 
 /**
- * End a filter
+ * Ends a filter definition
  */
 #define enxlog_end_filter()                                 \
             { .path = 0 }                                   \
@@ -117,7 +118,8 @@ const struct enxlog_filter* _name =                         \
     };
 
 /**
- * Start a filter entry
+ * Starts a filter entry
+ * @param _path The variable name of the filter
  */
 #define enxlog_filter_entry(_path, _loglevel)               \
     {                                                       \
