@@ -27,7 +27,7 @@
 #include "test_utils.h"
 
 
-LOGGER_DECLARE(logger, "");
+LOGGER(logger, "");
 
 
 int main(void)

@@ -29,13 +29,13 @@
 #include "test_utils.h"
 
 
-LOGGER_DECLARE(a, "a");
-LOGGER_DECLARE(b, "a", "b");
-LOGGER_DECLARE(c, "a", "b", "c");
+LOGGER(a, "a");
+LOGGER(b, "a", "b");
+LOGGER(c, "a", "b", "c");
 
-LOGGER_DECLARE(one, "one");
-LOGGER_DECLARE(two, "one", "two");
-LOGGER_DECLARE(three, "one", "two", "three");
+LOGGER(one, "one");
+LOGGER(two, "one", "two");
+LOGGER(three, "one", "two", "three");
 
 
 

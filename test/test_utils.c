@@ -27,13 +27,13 @@
 static void print_filter_tree_entry(const struct enxlog_filter_entry *entry, int indent)
 {
     int i;
-    while (entry->path) {
+    while (entry->name_part) {
 
         for (i=0; i < indent; ++i) {
             printf("  ");
         }
 
-        printf("%s: %s\n", entry->path, loglevel_to_string(entry->loglevel));
+        printf("%s: %s\n", entry->name_part, loglevel_to_string(entry->loglevel));
 
         print_filter_tree_entry(entry->children, indent+1);
 

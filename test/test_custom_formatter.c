@@ -27,7 +27,7 @@
 #include "test_utils.h"
 
 
-LOGGER_DECLARE(logger, "logger");
+LOGGER(logger, "logger");
 
 
 enxlog_filter(filter_tree)

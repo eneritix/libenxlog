@@ -47,7 +47,7 @@ static void enxlog_filter_config_entry_destroy(struct enxlog_filter_config_entry
  */
 static struct enxlog_filter_config_entry *enxlog_filter_config_entry_append_child(
     struct enxlog_filter_config_entry *parent,
-    const char *path,
+    const char *name_part,
     enum enxlog_loglevel loglevel);
 
 static void enxlog_filter_config_transform_recursively(
@@ -95,11 +95,11 @@ void enxlog_filter_config_append(
 }
 
 static struct enxlog_filter_config_entry* enxlog_filter_config_entry_create(
-    const char *path,
+    const char *name_part,
     enum enxlog_loglevel loglevel)
 {
     struct enxlog_filter_config_entry *obj = (struct enxlog_filter_config_entry *)malloc(sizeof(struct enxlog_filter_config_entry));
-    obj->path = path ? strdup(path) : NULL;
+    obj->name_part = name_part ? strdup(name_part) : NULL;
     obj->loglevel = loglevel;
     obj->child = NULL;
     obj->next = NULL;
@@ -109,8 +109,8 @@ static struct enxlog_filter_config_entry* enxlog_filter_config_entry_create(
 
 static void enxlog_filter_config_entry_destroy(struct enxlog_filter_config_entry *obj)
 {
-    if (obj->path) {
-        free(obj->path);
+    if (obj->name_part) {
+        free(obj->name_part);
     }
 
     if (obj->next) {
@@ -126,14 +126,14 @@ static void enxlog_filter_config_entry_destroy(struct enxlog_filter_config_entry
 
 static struct enxlog_filter_config_entry *enxlog_filter_config_entry_append_child(
     struct enxlog_filter_config_entry *parent,
-    const char *path,
+    const char *name_part,
     enum enxlog_loglevel loglevel)
 {
     struct enxlog_filter_config_entry *result = NULL;
 
     // No children
     if (parent->child == NULL) {
-        parent->child = enxlog_filter_config_entry_create(path, loglevel);
+        parent->child = enxlog_filter_config_entry_create(name_part, loglevel);
         result = parent->child;
 
     // Has children
@@ -141,7 +141,7 @@ static struct enxlog_filter_config_entry *enxlog_filter_config_entry_append_chil
         struct enxlog_filter_config_entry *search = parent->child;
         bool found = false;
         do {
-            found = (strcmp(search->path, path) == 0);
+            found = (strcmp(search->name_part, name_part) == 0);
             if (!found && search->next) {
                 search = search->next;
             }
@@ -151,7 +151,7 @@ static struct enxlog_filter_config_entry *enxlog_filter_config_entry_append_chil
             result = search;
 
         } else {
-            search->next = enxlog_filter_config_entry_create(path, loglevel);
+            search->next = enxlog_filter_config_entry_create(name_part, loglevel);
             result = search->next;
         }
     }
@@ -196,7 +196,7 @@ static void enxlog_filter_config_transform_recursively(
 
     while (source) {
 
-        dest->path = strdup(source->path);
+        dest->name_part = strdup(source->name_part);
         dest->loglevel = source->loglevel;
 
         enxlog_filter_config_transform_recursively(source->child, &dest->children);
@@ -207,7 +207,7 @@ static void enxlog_filter_config_transform_recursively(
 
     // Terminate
     dest->children = NULL;
-    dest->path = NULL;
+    dest->name_part = NULL;
     dest->loglevel = LOGLEVEL_NONE;
 }
 
@@ -215,8 +215,8 @@ static void enxlog_filter_config_transform_destroy_recursively(
     struct enxlog_filter_entry *filter_entries)
 {
     struct enxlog_filter_entry *ptr = filter_entries;
-    while (ptr->path) {
-        free(ptr->path);
+    while (ptr->name_part) {
+        free(ptr->name_part);
         enxlog_filter_config_transform_destroy_recursively(ptr->children);
         ptr++;
     }

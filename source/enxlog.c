@@ -27,10 +27,45 @@
 #include <string.h>
 
 
+/**
+ * Returns true when output is allowed for the given logger and loglevel
+ * @private
+ */
+static bool enxlog_allow_output(
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel);
+
+/**
+ * Opens a log entry
+ * @private
+ */
+static void enxlog_log_entry_open(
+    const struct enxlog_logger* logger,
+    enum enxlog_loglevel loglevel,
+    const char* func,
+    unsigned int line);
+
+/**
+ * Writes to a log entry
+ * @private
+ */
+static bool enxlog_log_entry_write(
+    void *context,
+    const char *ptr,
+    size_t length);
+
+/**
+ * Closes a log entry
+ * @private
+ */
+static void enxlog_log_entry_close(void);
+
+
 static enum enxlog_loglevel enxlog_default_loglevel = LOGLEVEL_NONE;
 static const struct enxlog_sink* enxlog_sinks = NULL;
 static const struct enxlog_lock *enxlog_lock = NULL;
 static const struct enxlog_filter *enxlog_filter = NULL;
+
 
 bool enxlog_init(
     enum enxlog_loglevel default_loglevel,
@@ -68,29 +103,49 @@ void enxlog_shutdown(void)
     }
 }
 
-bool enxlog_allow_output(
+void enxlog_log(
+    const struct enxlog_logger* logger,
+    enum enxlog_loglevel loglevel,
+    const char* func,
+    unsigned int line,
+    const char* format,
+    const struct enxtxt_fstr_arg *args)
+{
+    if (enxlog_filter == NULL) {
+        return;
+    }
+
+    if (enxlog_allow_output(logger, loglevel)) {
+
+        enxlog_log_entry_open(logger, loglevel, func, line);
+        _enxtxt_fstr_cb(enxlog_log_entry_write, NULL, format, args);
+        enxlog_log_entry_close();
+    }
+}
+
+static bool enxlog_allow_output(
     const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel)
 {
     enum enxlog_loglevel config_loglevel = enxlog_default_loglevel;
 
     const struct enxlog_filter_entry* filter_entry = enxlog_filter->entries;
-    const char** path = logger->path;
+    const char** name_part = logger->name;
 
-    while (*path) {
+    while (*name_part) {
 
-        while (filter_entry->path) {
-            if (strcmp(filter_entry->path, *path) == 0) {
+        while (filter_entry->name_part) {
+            if (strcmp(filter_entry->name_part, *name_part) == 0) {
                 config_loglevel = filter_entry->loglevel;
                 filter_entry = filter_entry->children;
-                path++;
+                name_part++;
                 break;
             } else {
                 filter_entry++;
             }
         }
 
-        if (filter_entry->path == 0) {
+        if (filter_entry->name_part == 0) {
             break;
         }
     }
@@ -98,7 +153,7 @@ bool enxlog_allow_output(
     return (loglevel <= config_loglevel);
 }
 
-void enxlog_log_entry_open(
+static void enxlog_log_entry_open(
     const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
     const char *func,
@@ -124,7 +179,7 @@ void enxlog_log_entry_open(
     }
 }
 
-bool enxlog_log_entry_write(void *context, const char *ptr, size_t length)
+static bool enxlog_log_entry_write(void *context, const char *ptr, size_t length)
 {
     // Log
     const struct enxlog_sink* sink = enxlog_sinks;
@@ -138,7 +193,7 @@ bool enxlog_log_entry_write(void *context, const char *ptr, size_t length)
     return true;
 }
 
-void enxlog_log_entry_close(void)
+static void enxlog_log_entry_close(void)
 {
     // Log
     const struct enxlog_sink* sink = enxlog_sinks;
@@ -151,21 +206,5 @@ void enxlog_log_entry_close(void)
 
     if (enxlog_lock) {
         enxlog_lock->fn_unlock(enxlog_lock->context);
-    }
-}
-
-void enxlog_log(
-    const struct enxlog_logger* logger,
-    enum enxlog_loglevel loglevel,
-    const char* func,
-    unsigned int line,
-    const char* format,
-    const struct enxtxt_fstr_arg *args)
-{
-    if (enxlog_allow_output(logger, loglevel)) {
-
-        enxlog_log_entry_open(logger, loglevel, func, line);
-        _enxtxt_fstr_cb(enxlog_log_entry_write, NULL, format, args);
-        enxlog_log_entry_close();
     }
 }

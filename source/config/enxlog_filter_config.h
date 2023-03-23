@@ -40,7 +40,7 @@ struct enxlog_filter_config
  */
 struct enxlog_filter_config_entry
 {
-    char* path;
+    char* name_part;
     enum enxlog_loglevel loglevel;
     struct enxlog_filter_config_entry* child;
     struct enxlog_filter_config_entry* next;
@@ -61,7 +61,7 @@ void enxlog_filter_config_destroy(struct enxlog_filter_config *obj);
  */
 void enxlog_filter_config_append(
     struct enxlog_filter_config *obj,
-    const char *path,
+    const char *name_part,
     enum enxlog_loglevel loglevel,
     enum enxlog_loglevel default_loglevel);
 

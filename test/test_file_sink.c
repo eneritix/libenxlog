@@ -46,7 +46,7 @@ enxlog_end_sink_list()
 
 
 
-LOGGER_DECLARE(logger, "test");
+LOGGER(logger, "test");
 
 
 int main(int argc, char* argv[])

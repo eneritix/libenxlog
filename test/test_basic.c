@@ -27,9 +27,9 @@
 #include "test_utils.h"
 
 
-LOGGER_DECLARE(logger_one, "one");
-LOGGER_DECLARE(logger_two, "one", "two");
-LOGGER_DECLARE(logger_three, "one", "two", "three");
+LOGGER(logger_one, "one");
+LOGGER(logger_two, "one", "two");
+LOGGER(logger_three, "one", "two", "three");
 
 
 enxlog_filter(filter_tree)

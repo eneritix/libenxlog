@@ -89,10 +89,10 @@ void enxlog_sink_file_log_entry_open(
 
 
     // Path
-    const char** path = logger->path;
-    while (*path) {
-        fprintf(ctx->file, "%s::", *path);
-        path++;
+    const char** name_part = logger->name;
+    while (*name_part) {
+        fprintf(ctx->file, "%s::", *name_part);
+        name_part++;
     }
 
     // Function and line

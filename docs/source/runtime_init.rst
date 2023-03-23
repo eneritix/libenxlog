@@ -4,7 +4,8 @@ Runtime initialization
 Introduction
 ------------
 
-Compile time initialization is used on embedded systems without an operating system and storage.
-Configurations are stored in ROM (flash) memory as much as possible to minimize impact on RAM.
+Runtime initialization is used on systems with an operating system and storage where the configuration can be read from a YAML file.
+The library has a dependency on libyaml when runtime initialization is enabled.
+
 
 

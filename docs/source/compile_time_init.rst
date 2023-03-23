@@ -12,6 +12,7 @@ Defining a filter
 ------------------
 
 A filter defines log levels for nodes in the logger namespace tree.
+Filters are defined with the :c:macro:`enxlog_filter()`, :c:macro:`enxlog_filter_entry()` and :c:macro:`enxlog_end_filter()` macros.
 
 
 .. code-block:: C
@@ -53,16 +54,6 @@ Define a compile-time sink list as follows:
     enxlog_end_sink_list()
 
 
-.. c:macro:: enxlog_sink(context, fn_init, fn_shutdown, fn_log_entry_open, fn_log_entry_write, fn_log_entry_close)
-
-   :param context: A context pointer passed to the sink functions
-   :param fn_init: The sink initialization function. See :c:func:`enxlog_sink_init_fn_t`
-   :param fn_shutdown: The sink shutdown function. See :c:func:`enxlog_sink_shutdown_fn_t`
-   :param fn_log_entry_open: The sink log entry open function. See :c:func:`enxlog_sink_log_entry_open_fn_t`
-   :param fn_log_entry_open: The sink log entry write function. See :c:func:`enxlog_sink_log_entry_write_fn_t`
-   :param fn_log_entry_open: The sink log entry close function. See :c:func:`enxlog_sink_log_entry_close_fn_t`
-
-
 Defining a lock
 ---------------
 
@@ -81,8 +72,6 @@ Initialization function
 
 The logging system is initialized with the :c:func:`enxlog_init()` function.
 
-.. doxygenfunction:: enxlog_init
-    :no-link:
 
 Example
 -------

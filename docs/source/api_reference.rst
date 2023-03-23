@@ -2,39 +2,72 @@ API Reference
 =============
 
 
-Filter declaration macros
--------------------------
+Filter definition macros
+------------------------
 .. doxygendefine:: enxlog_filter
 
+.. doxygendefine:: enxlog_filter_entry
 
-Sink declaration macros
------------------------
+.. doxygendefine:: enxlog_end_filter
+
+
+
+Sink definition macros
+----------------------
+
+.. doxygendefine:: enxlog_sink_list
+
+.. doxygendefine:: enxlog_sink
+
+.. doxygendefine:: enxlog_end_sink_list
+
 
 Sink callback functions
 -----------------------
 
-.. c:function:: bool enxlog_sink_init_fn_t(void *context)
+.. doxygentypedef:: enxlog_sink_init_fn_t
 
-   :param context: Context.
-   :returns: a result.
+.. doxygentypedef:: enxlog_sink_shutdown_fn_t
 
-.. c:function:: void enxlog_sink_shutdown_fn_t(void *context)
+.. doxygentypedef:: enxlog_sink_log_entry_open_fn_t
 
-.. c:function:: void enxlog_sink_log_entry_open_fn_t(void* context, const struct enxlog_logger *logger, enum enxlog_loglevel loglevel, const char *func, unsigned int line)
+.. doxygentypedef:: enxlog_sink_log_entry_write_fn_t
 
-.. c:function:: void enxlog_sink_log_entry_write_fn_t(void* context, const char *ptr, size_t length)
-
-.. c:function:: void enxlog_sink_log_entry_close_fn_t(void *context)
+.. doxygentypedef:: enxlog_sink_log_entry_close_fn_t
 
 
-Lock declaration macros
------------------------
+Lock definition macros
+----------------------
+
+.. doxygendefine:: enxlog_lock
+
 
 Lock callback functions
 -----------------------
+
+.. doxygentypedef:: enxlog_lock_lock_fn_t
+
+.. doxygentypedef:: enxlog_lock_unlock_fn_t
+
 
 Initialization and Shutdown
 ---------------------------
 
 .. doxygenfunction:: enxlog_init
+
+.. doxygenfunction:: enxlog_shutdown
+
+
+Logging Macros
+--------------
+
+.. doxygendefine:: LOGGER
+
+.. doxygendefine:: LOG_ERROR
+
+.. doxygendefine:: LOG_WARN
+
+.. doxygendefine:: LOG_INFO
+
+.. doxygendefine:: LOG_DEBUG
 

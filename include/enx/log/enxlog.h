@@ -34,7 +34,6 @@ __BEGIN_DECLS
 
 /**
  * Loglevel enumeration
- *
  */
 enum enxlog_loglevel
 {
@@ -51,25 +50,26 @@ enum enxlog_loglevel
 
 /**
  * Logger
- *
  */
 struct enxlog_logger
 {
-    const char **path;
+    const char **name;
 };
 
 /**
- * Declare a logger
- *
+ * Define a logger
+ * @param _var_name The variable name of the logger
+ * @param ... The name of the logger, specified as a list of comma separated parts
  */
-#define LOGGER_DECLARE(name, ...) \
-static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
-    { \
-        .path = (const char* []) { \
-        __VA_ARGS__ \
-        ,0 \
-        } \
-    } \
+#define LOGGER(_var_name, ...)                              \
+static const struct enxlog_logger* _var_name =              \
+    (const struct enxlog_logger []) {                       \
+    {                                                       \
+        .name = (const char* []) {                          \
+        __VA_ARGS__                                         \
+        ,0                                                  \
+        }                                                   \
+    }                                                       \
 }
 
 /** @} */
@@ -83,7 +83,7 @@ static const struct enxlog_logger* name = (const struct enxlog_logger []) { \
  */
 struct enxlog_filter_entry
 {
-    char *path;
+    char *name_part;
     enum enxlog_loglevel loglevel;
     struct enxlog_filter_entry *children;
 };
@@ -98,11 +98,10 @@ struct enxlog_filter
 
 /**
  * Starts a filter definition
- * @param _name The variable name of the filter
+ * @param _var_name The variable name of the filter
  */
-#define enxlog_filter(_name)                                \
-const struct enxlog_filter* _name =                         \
-    (const struct enxlog_filter*)                           \
+#define enxlog_filter(_var_name)                            \
+const struct enxlog_filter* _var_name =                     \
     (const struct enxlog_filter []) {                       \
     {                                                       \
     .entries = (struct enxlog_filter_entry*)                \
@@ -112,27 +111,28 @@ const struct enxlog_filter* _name =                         \
  * Ends a filter definition
  */
 #define enxlog_end_filter()                                 \
-            { .path = 0 }                                   \
+            { .name_part = 0 }                              \
             }                                               \
         }                                                   \
     };
 
 /**
  * Starts a filter entry
- * @param _path The variable name of the filter
+ * @param _name_part The name part of the filter entry
+ * @param _loglevel The loglevel of the filter up to this point
  */
-#define enxlog_filter_entry(_path, _loglevel)               \
+#define enxlog_filter_entry(_name_part, _loglevel)          \
     {                                                       \
-        .path = _path,                                      \
+        .name_part = _name_part,                            \
         .loglevel = _loglevel,                              \
         .children = (struct enxlog_filter_entry*)           \
             (const struct enxlog_filter_entry []) {
 
 /**
- * End a filter entry
+ * Ends a filter entry
  */
 #define enxlog_end_filter_entry()                           \
-            { .path = 0 }                                   \
+            { .name_part = 0 }                              \
         }                                                   \
     },
 
@@ -144,54 +144,89 @@ const struct enxlog_filter* _name =                         \
  */
 
 /**
+ * @brief Sink init callback function
+ * @param context The user supplied context
+ */
+typedef bool (*enxlog_sink_init_fn_t)(void *context);
+
+/**
+ * @brief Sink shutdown callback function
+ * @param context The user supplied context
+ */
+typedef void (*enxlog_sink_shutdown_fn_t)(void *context);
+
+/**
+ * @brief Sink log entry open callback function
+ * @param context The user supplied context
+ * @param logger The logger that the log macro was invoked on
+ * @param loglevel The log level of the invoked log macro
+ * @param func The function that the log macro was invoked in
+ * @param line The line that the log macro was invoked on
+ */
+typedef void (*enxlog_sink_log_entry_open_fn_t)(
+    void* context,
+    const struct enxlog_logger *logger,
+    enum enxlog_loglevel loglevel,
+    const char *func,
+    unsigned int line);
+
+/**
+ * @brief Sink log entry write callback function
+ * @param context The user supplied context
+ * @param ptr The data to write (not null-terminated)
+ * @param length the length of the data
+ */
+typedef void (*enxlog_sink_log_entry_write_fn_t)(
+    void* context,
+    const char *ptr,
+    size_t length);
+
+/**
+ * @brief Sink log entry close callback function
+ * @param context The user supplied context
+ */
+typedef void (*enxlog_sink_log_entry_close_fn_t)(void *context);
+
+/**
  * Sink
- *
  */
 struct enxlog_sink
 {
     bool valid;
     void *context;
-
-    bool (*fn_init)(void *context);
-    void (*fn_shutdown)(void *context);
-
-    void (*fn_log_entry_open)(
-        void* context,
-        const struct enxlog_logger *logger,
-        enum enxlog_loglevel loglevel,
-        const char *func,
-        unsigned int line);
-
-    void (*fn_log_entry_write)(
-        void* context,
-        const char *ptr,
-        size_t length);
-
-    void (*fn_log_entry_close)(void *context);
+    enxlog_sink_init_fn_t fn_init;
+    enxlog_sink_shutdown_fn_t fn_shutdown;
+    enxlog_sink_log_entry_open_fn_t fn_log_entry_open;
+    enxlog_sink_log_entry_write_fn_t fn_log_entry_write;
+    enxlog_sink_log_entry_close_fn_t fn_log_entry_close;
 };
 
 /**
- * Start a sink list
- *
+ * Starts a sink list
+ * @param _var_name The variable name of the sink list
  */
-#define enxlog_sink_list(_name)                             \
-const struct enxlog_sink *_name =                           \
+#define enxlog_sink_list(_var_name)                         \
+const struct enxlog_sink *_var_name =                       \
     (const struct enxlog_sink*)                             \
     (const struct enxlog_sink []) {
 
 /**
- * End a sink list
- *
+ * Ends a sink list
  */
 #define enxlog_end_sink_list()                              \
     { .valid = false }                                      \
 };
 
 /**
- * Declare a sink
- *
+ * Declares a sink
+ * @param _context The user supplied context
+ * @param _fn_init The sink initialization function. See #enxlog_sink_init_fn_t
+ * @param _fn_shutdown The sink shutdown function. See #enxlog_sink_shutdown_fn_t
+ * @param _fn_log_entry_open The log entry open function. See #enxlog_sink_log_entry_open_fn_t
+ * @param _fn_log_entry_write The log entry write function. See #enxlog_sink_log_entry_write_fn_t
+ * @param _fn_log_entry_close The log entry close function. See #enxlog_sink_log_entry_close_fn_t
  */
-#define enxlog_sink(_context, _fn_init, _fn_shutdown, _fn_log_entry_open, _fn_log_entry_write, _fn_log_entry_close)                                    \
+#define enxlog_sink(_context, _fn_init, _fn_shutdown, _fn_log_entry_open, _fn_log_entry_write, _fn_log_entry_close) \
     {                                                       \
         .valid = true,                                      \
         .context = _context,                                \
@@ -209,23 +244,37 @@ const struct enxlog_sink *_name =                           \
  */
 
 /**
+ * @brief Lock lock function
+ * @param context The user supplied context
+ */
+typedef void (*enxlog_lock_lock_fn_t)(void *context);
+
+/**
+ * @brief Lock unlock function
+ * @param context The user supplied context
+ */
+typedef void (*enxlog_lock_unlock_fn_t)(void *context);
+
+/**
  * Lock
- *
  */
 struct enxlog_lock
 {
-    void (*fn_lock)(void *context);
-    void (*fn_unlock)(void *context);
+    enxlog_lock_lock_fn_t fn_lock;
+    enxlog_lock_unlock_fn_t fn_unlock;
     void* context;
 };
 
 
 /**
- * Declare a lock
- *
+ * Define a lock
+ * @param _var_name The variable name of the lock
+ * @param _context The user supplied context
+ * @param _fn_lock The lock function. See #enxlog_lock_lock_fn_t
+ * @param _fn_unlock The unlock function. See #enxlog_lock_unlock_fn_t
  */
-#define enxlog_lock(_name, _context, _fn_lock, _fn_unlock)  \
-const struct enxlog_lock *_name =                           \
+#define enxlog_lock(_var_name, _context, _fn_lock, _fn_unlock)  \
+const struct enxlog_lock *_var_name =                       \
     (const struct enxlog_lock*)                             \
     (const struct enxlog_lock []) {                         \
     {                                                       \
@@ -249,7 +298,7 @@ const struct enxlog_lock *_name =                           \
  * @param default_loglevel The default loglevel
  * @param sinks A list of sinks
  * @param lock The lock to use, or NULL if locking is not required
- * @param filter_list The filter list
+ * @param filter The filter
  */
 bool enxlog_init(
     enum enxlog_loglevel default_loglevel,
@@ -259,42 +308,8 @@ bool enxlog_init(
 
 /**
  * Shuts down the logging library
- *
  */
 void enxlog_shutdown(void);
-
-/**
- * Returns true when output is allowed for the given logger and loglevel
- * @private
- */
-bool enxlog_allow_output(
-    const struct enxlog_logger *logger,
-    enum enxlog_loglevel loglevel);
-
-/**
- * Opens a log entry
- * @private
- */
-void enxlog_log_entry_open(
-    const struct enxlog_logger* logger,
-    enum enxlog_loglevel loglevel,
-    const char* func,
-    unsigned int line);
-
-/**
- * Writes to a log entry
- * @private
- */
-bool enxlog_log_entry_write(
-    void *context,
-    const char *ptr,
-    size_t length);
-
-/**
- * Closes a log entry
- * @private
- */
-void enxlog_log_entry_close(void);
 
 /**
  * Called by the logging macros
@@ -321,7 +336,7 @@ void enxlog_log(
  * Logs an error
  * @param logger The logger
  * @param format A format string
- * @param args A variable list of arguments
+ * @param ... A variable list of arguments
  */
 #define LOG_ERROR(logger, format, ...)                                                  \
 do {                                                                                    \
@@ -331,6 +346,12 @@ do {                                                                            
     enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, format, __args);         \
 } while (0)
 
+/**
+ * Logs a warning
+ * @param logger The logger
+ * @param format A format string
+ * @param ... A variable list of arguments
+ */
 #define LOG_WARN(logger, format, ...)                                                   \
 do {                                                                                    \
     const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
@@ -339,6 +360,12 @@ do {                                                                            
     enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, format, __args);          \
 } while (0)
 
+/**
+ * Logs information
+ * @param logger The logger
+ * @param format A format string
+ * @param ... A variable list of arguments
+ */
 #define LOG_INFO(logger, format, ...)                                                   \
 do {                                                                                    \
     const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
@@ -347,6 +374,12 @@ do {                                                                            
     enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, format, __args);          \
 } while (0)
 
+/**
+ * Logs debug information
+ * @param logger The logger
+ * @param format A format string
+ * @param ... A variable list of arguments
+ */
 #define LOG_DEBUG(logger, format, ...)                                                  \
 do {                                                                                    \
     const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \

@@ -69,10 +69,10 @@ void enxlog_sink_stdout_color_log_entry_open(
     printf("%s", LOG_COLOR_BROWN);
 
     // Path
-    const char** path = logger->path;
-    while (*path) {
-        printf("%s::", *path);
-        path++;
+    const char** name_part = logger->name;
+    while (*name_part) {
+        printf("%s::", *name_part);
+        name_part++;
     }
 
     // Function and line
