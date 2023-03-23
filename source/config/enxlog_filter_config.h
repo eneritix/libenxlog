@@ -40,10 +40,10 @@ struct enxlog_filter_config
  */
 struct enxlog_filter_config_entry
 {
-    char* name_part;
+    char *name_part;
     enum enxlog_loglevel loglevel;
-    struct enxlog_filter_config_entry* child;
-    struct enxlog_filter_config_entry* next;
+    struct enxlog_filter_config_entry *child;
+    struct enxlog_filter_config_entry *next;
 };
 
 /**

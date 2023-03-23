@@ -27,7 +27,7 @@
 #include <sys/time.h>
 
 void enxlog_sink_stdout_log_entry_open(
-    void* context,
+    void *context,
     const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
     const char *func,
@@ -38,7 +38,7 @@ void enxlog_sink_stdout_log_entry_open(
     gettimeofday(&curTime, NULL);
     int milli = curTime.tv_usec / 1000;
 
-    struct tm* timeinfo;
+    struct tm *timeinfo;
     timeinfo = localtime(&curTime.tv_sec);
 
     char tag[64];
@@ -56,18 +56,18 @@ void enxlog_sink_stdout_log_entry_open(
 
 
     // Path
-    const char** name_part = logger->name;
+    const char **name_part = logger->name;
     while (*name_part) {
         printf("%s::", *name_part);
         name_part++;
     }
 
     // Function and line
-    printf( "%s:%u: ", func, line);
+    printf("%s:%u: ", func, line);
 }
 
 void enxlog_sink_stdout_log_entry_write(
-    void* context,
+    void *context,
     const char *ptr,
     size_t length)
 {

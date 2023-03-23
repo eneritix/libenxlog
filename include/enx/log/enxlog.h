@@ -62,7 +62,7 @@ struct enxlog_logger
  * @param ... The name of the logger, specified as a list of comma separated parts
  */
 #define LOGGER(_var_name, ...)                              \
-static const struct enxlog_logger* _var_name =              \
+static const struct enxlog_logger *_var_name =              \
     (const struct enxlog_logger []) {                       \
     {                                                       \
         .name = (const char* []) {                          \
@@ -101,10 +101,10 @@ struct enxlog_filter
  * @param _var_name The variable name of the filter
  */
 #define enxlog_filter(_var_name)                            \
-const struct enxlog_filter* _var_name =                     \
+static const struct enxlog_filter *_var_name =              \
     (const struct enxlog_filter []) {                       \
     {                                                       \
-    .entries = (struct enxlog_filter_entry*)                \
+    .entries = (struct enxlog_filter_entry *)               \
                (const struct enxlog_filter_entry []) {
 
 /**
@@ -125,7 +125,7 @@ const struct enxlog_filter* _var_name =                     \
     {                                                       \
         .name_part = _name_part,                            \
         .loglevel = _loglevel,                              \
-        .children = (struct enxlog_filter_entry*)           \
+        .children = (struct enxlog_filter_entry *)          \
             (const struct enxlog_filter_entry []) {
 
 /**
@@ -164,7 +164,7 @@ typedef void (*enxlog_sink_shutdown_fn_t)(void *context);
  * @param line The line that the log macro was invoked on
  */
 typedef void (*enxlog_sink_log_entry_open_fn_t)(
-    void* context,
+    void *context,
     const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
     const char *func,
@@ -206,8 +206,8 @@ struct enxlog_sink
  * @param _var_name The variable name of the sink list
  */
 #define enxlog_sink_list(_var_name)                         \
-const struct enxlog_sink *_var_name =                       \
-    (const struct enxlog_sink*)                             \
+static const struct enxlog_sink *_var_name =                \
+    (const struct enxlog_sink *)                            \
     (const struct enxlog_sink []) {
 
 /**
@@ -262,7 +262,7 @@ struct enxlog_lock
 {
     enxlog_lock_lock_fn_t fn_lock;
     enxlog_lock_unlock_fn_t fn_unlock;
-    void* context;
+    void *context;
 };
 
 
@@ -274,8 +274,7 @@ struct enxlog_lock
  * @param _fn_unlock The unlock function. See #enxlog_lock_unlock_fn_t
  */
 #define enxlog_lock(_var_name, _context, _fn_lock, _fn_unlock)  \
-const struct enxlog_lock *_var_name =                       \
-    (const struct enxlog_lock*)                             \
+static const struct enxlog_lock *_var_name =                \
     (const struct enxlog_lock []) {                         \
     {                                                       \
         .context = _context,                                \
@@ -316,11 +315,11 @@ void enxlog_shutdown(void);
  * @private
  */
 void enxlog_log(
-    const struct enxlog_logger* logger,
+    const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
-    const char* func,
+    const char *func,
     unsigned int line,
-    const char* format,
+    const char *format,
     const struct enxtxt_fstr_arg *args);
 
 /** @} */
@@ -340,7 +339,7 @@ void enxlog_log(
  */
 #define LOG_ERROR(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, format, __args);         \
@@ -354,7 +353,7 @@ do {                                                                            
  */
 #define LOG_WARN(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, format, __args);          \
@@ -368,7 +367,7 @@ do {                                                                            
  */
 #define LOG_INFO(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, format, __args);          \
@@ -382,7 +381,7 @@ do {                                                                            
  */
 #define LOG_DEBUG(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg* __args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, format, __args);         \

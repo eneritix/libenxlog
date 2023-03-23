@@ -42,7 +42,7 @@ static bool enxlog_allow_output(
 static void enxlog_log_entry_open(
     const struct enxlog_logger* logger,
     enum enxlog_loglevel loglevel,
-    const char* func,
+    const char *func,
     unsigned int line);
 
 /**
@@ -62,7 +62,7 @@ static void enxlog_log_entry_close(void);
 
 
 static enum enxlog_loglevel enxlog_default_loglevel = LOGLEVEL_NONE;
-static const struct enxlog_sink* enxlog_sinks = NULL;
+static const struct enxlog_sink *enxlog_sinks = NULL;
 static const struct enxlog_lock *enxlog_lock = NULL;
 static const struct enxlog_filter *enxlog_filter = NULL;
 
@@ -80,7 +80,7 @@ bool enxlog_init(
     enxlog_lock = lock;
     enxlog_filter = filter;
 
-    const struct enxlog_sink* sink = enxlog_sinks;
+    const struct enxlog_sink *sink = enxlog_sinks;
     while (sink->valid) {
         if (sink->fn_init) {
             result &= sink->fn_init(sink->context);
@@ -93,7 +93,7 @@ bool enxlog_init(
 
 void enxlog_shutdown(void)
 {
-    const struct enxlog_sink* sink = enxlog_sinks;
+    const struct enxlog_sink *sink = enxlog_sinks;
     while (sink->valid) {
         if (sink->fn_shutdown) {
             sink->fn_shutdown(sink->context);
@@ -104,11 +104,11 @@ void enxlog_shutdown(void)
 }
 
 void enxlog_log(
-    const struct enxlog_logger* logger,
+    const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
-    const char* func,
+    const char *func,
     unsigned int line,
-    const char* format,
+    const char *format,
     const struct enxtxt_fstr_arg *args)
 {
     if (enxlog_filter == NULL) {
@@ -129,8 +129,8 @@ static bool enxlog_allow_output(
 {
     enum enxlog_loglevel config_loglevel = enxlog_default_loglevel;
 
-    const struct enxlog_filter_entry* filter_entry = enxlog_filter->entries;
-    const char** name_part = logger->name;
+    const struct enxlog_filter_entry *filter_entry = enxlog_filter->entries;
+    const char **name_part = logger->name;
 
     while (*name_part) {
 
@@ -170,7 +170,7 @@ static void enxlog_log_entry_open(
     }
 
     // Log
-    const struct enxlog_sink* sink = enxlog_sinks;
+    const struct enxlog_sink *sink = enxlog_sinks;
     while (sink->valid) {
         if (sink->fn_log_entry_open) {
             sink->fn_log_entry_open(sink->context, logger, loglevel, func, line);
@@ -182,7 +182,7 @@ static void enxlog_log_entry_open(
 static bool enxlog_log_entry_write(void *context, const char *ptr, size_t length)
 {
     // Log
-    const struct enxlog_sink* sink = enxlog_sinks;
+    const struct enxlog_sink *sink = enxlog_sinks;
     while (sink->valid) {
         if (sink->fn_log_entry_write) {
             sink->fn_log_entry_write(sink->context, ptr, length);
@@ -196,7 +196,7 @@ static bool enxlog_log_entry_write(void *context, const char *ptr, size_t length
 static void enxlog_log_entry_close(void)
 {
     // Log
-    const struct enxlog_sink* sink = enxlog_sinks;
+    const struct enxlog_sink *sink = enxlog_sinks;
     while (sink->valid) {
         if (sink->fn_log_entry_close) {
             sink->fn_log_entry_close(sink->context);

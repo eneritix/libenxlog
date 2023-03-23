@@ -33,18 +33,18 @@ __BEGIN_DECLS
 
 struct enxlog_config;
 
-typedef void (*enxlog_config_parser_error_callback_t)(int line, int column, const char* message);
+typedef void (*enxlog_config_parser_error_callback_t)(int line, int column, const char *message);
 typedef bool (*enxlog_config_parser_sink_creation_callback_t)(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback);
 
 /**
  * @brief Parses a configuration file into a configuration object
  *
  */
-struct enxlog_config* enxlog_config_parse(
-    const char* path,
+struct enxlog_config *enxlog_config_parse(
+    const char *path,
     enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
     enxlog_config_parser_error_callback_t error_callback);
 
@@ -52,25 +52,25 @@ struct enxlog_config* enxlog_config_parse(
  * @brief Destroys a configuration object
  *
  */
-void enxlog_config_destroy(struct enxlog_config* config);
+void enxlog_config_destroy(struct enxlog_config *config);
 
 /**
  * @brief Returns the default loglevel specified in the configuration file
  *
  */
-enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* config);
+enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config *config);
 
 /**
  * @brief Returns the sinks specified in the configuration file
  *
  */
-const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config);
+const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config *config);
 
 /**
  * @brief Returns the filter specified in the configuration file
  *
  */
-const struct enxlog_filter *enxlog_config_get_filter(struct enxlog_config* config);
+const struct enxlog_filter *enxlog_config_get_filter(struct enxlog_config *config);
 
 
 __END_DECLS

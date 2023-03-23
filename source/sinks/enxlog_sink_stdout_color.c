@@ -69,7 +69,7 @@ void enxlog_sink_stdout_color_log_entry_open(
     printf("%s", LOG_COLOR_BROWN);
 
     // Path
-    const char** name_part = logger->name;
+    const char **name_part = logger->name;
     while (*name_part) {
         printf("%s::", *name_part);
         name_part++;
@@ -80,7 +80,7 @@ void enxlog_sink_stdout_color_log_entry_open(
 }
 
 void enxlog_sink_stdout_color_log_entry_write(
-    void* context,
+    void *context,
     const char *ptr,
     size_t length)
 {

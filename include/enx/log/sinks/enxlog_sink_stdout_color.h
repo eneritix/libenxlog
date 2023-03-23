@@ -32,14 +32,14 @@ __BEGIN_DECLS
 
 
 void enxlog_sink_stdout_color_log_entry_open(
-    void* context,
+    void *context,
     const struct enxlog_logger *logger,
     enum enxlog_loglevel loglevel,
     const char *func,
     unsigned int line);
 
 void enxlog_sink_stdout_color_log_entry_write(
-    void* context,
+    void *context,
     const char *ptr,
     size_t length);
 

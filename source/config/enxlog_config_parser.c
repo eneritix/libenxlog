@@ -61,12 +61,12 @@ static bool enxlog_config_parse_generic_mapping(
     yaml_parser_t *parser,
     enxlog_config_parse_mapping_callback_t callback,
     void *context);
-static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name);
+static enum enxlog_loglevel enxlog_config_parse_loglevel(const char *name);
 
 
 
 struct enxlog_config *enxlog_config_parse(
-    const char* path,
+    const char *path,
     enxlog_config_parser_sink_creation_callback_t sink_creation_callback,
     enxlog_config_parser_error_callback_t error_callback)
 {
@@ -121,7 +121,7 @@ error_fopen:
     return NULL;
 }
 
-void enxlog_config_destroy(struct enxlog_config* config)
+void enxlog_config_destroy(struct enxlog_config *config)
 {
     if (config->filter_config) {
         enxlog_filter_config_destroy(config->filter_config);
@@ -142,17 +142,17 @@ void enxlog_config_destroy(struct enxlog_config* config)
    free(config);
 }
 
-enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config* config)
+enum enxlog_loglevel enxlog_config_get_default_loglevel(struct enxlog_config *config)
 {
     return config->default_loglevel;
 }
 
-const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config* config)
+const struct enxlog_sink *enxlog_config_get_sinks(struct enxlog_config *config)
 {
     return config->sinks;
 }
 
-const struct enxlog_filter *enxlog_config_get_filter(struct enxlog_config* config)
+const struct enxlog_filter *enxlog_config_get_filter(struct enxlog_config *config)
 {
     return config->filter;
 }
@@ -458,7 +458,7 @@ static bool enxlog_config_parse_generic_mapping(
     return (parse_state == PARSE_STATE_SUCCESS);
 }
 
-static enum enxlog_loglevel enxlog_config_parse_loglevel(const char* name)
+static enum enxlog_loglevel enxlog_config_parse_loglevel(const char *name)
 {
     if (strcmp(name, "NONE") == 0) {
         return LOGLEVEL_NONE;

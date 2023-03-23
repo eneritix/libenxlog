@@ -25,16 +25,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct enxlog_sink_parameters* enxlog_sink_parameters_create()
+struct enxlog_sink_parameters *enxlog_sink_parameters_create()
 {
-    struct enxlog_sink_parameters* parameters = malloc(sizeof(struct enxlog_sink_parameters));
+    struct enxlog_sink_parameters *parameters = malloc(sizeof(struct enxlog_sink_parameters));
     parameters->head = NULL;
     parameters->tail = NULL;
 
     return parameters;
 }
 
-void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters* parameters)
+void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters *parameters)
 {
     struct enxlog_sink_parameter *parameter = parameters->head;
     while (parameter) {
@@ -49,7 +49,7 @@ void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters* parameters)
     free(parameters);
 }
 
-void enxlog_sink_parameters_add(struct enxlog_sink_parameters* parameters, const char* key, const char* value)
+void enxlog_sink_parameters_add(struct enxlog_sink_parameters *parameters, const char *key, const char *value)
 {
     struct enxlog_sink_parameter *parameter = malloc(sizeof(struct enxlog_sink_parameter));
     parameter->key = strdup(key);
@@ -65,7 +65,7 @@ void enxlog_sink_parameters_add(struct enxlog_sink_parameters* parameters, const
     }
 }
 
-const char *enxlog_sink_parameters_find(const struct enxlog_sink_parameters* parameters, const char* key)
+const char *enxlog_sink_parameters_find(const struct enxlog_sink_parameters *parameters, const char *key)
 {
     struct enxlog_sink_parameter *parameter = parameters->head;
     const char *result = NULL;

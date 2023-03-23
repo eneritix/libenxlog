@@ -31,7 +31,7 @@
 /**
  * @brief Creates a configuration entry
  */
-static struct enxlog_filter_config_entry* enxlog_filter_config_entry_create(
+static struct enxlog_filter_config_entry *enxlog_filter_config_entry_create(
     const char *path,
     enum enxlog_loglevel loglevel);
 
@@ -94,7 +94,7 @@ void enxlog_filter_config_append(
     }
 }
 
-static struct enxlog_filter_config_entry* enxlog_filter_config_entry_create(
+static struct enxlog_filter_config_entry *enxlog_filter_config_entry_create(
     const char *name_part,
     enum enxlog_loglevel loglevel)
 {

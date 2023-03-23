@@ -34,8 +34,8 @@ __BEGIN_DECLS
 
 
 bool enxlog_sink_factory_create_sink(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback);
 
 

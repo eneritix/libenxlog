@@ -28,14 +28,14 @@
 #include <sys/time.h>
 
 
-struct enxlog_sink_file_context* enxlog_sink_file_create()
+struct enxlog_sink_file_context *enxlog_sink_file_create()
 {
     return malloc(sizeof(struct enxlog_sink_file_context));
 }
 
-void enxlog_sink_file_destroy(void* context)
+void enxlog_sink_file_destroy(void *context)
 {
-    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
 
     enxlog_sink_file_shutdown(ctx);
     free(ctx);
@@ -64,7 +64,7 @@ void enxlog_sink_file_log_entry_open(
     const char *func,
     unsigned int line)
 {
-    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
 
     // Timestamp
     struct timeval curTime;
@@ -89,7 +89,7 @@ void enxlog_sink_file_log_entry_open(
 
 
     // Path
-    const char** name_part = logger->name;
+    const char **name_part = logger->name;
     while (*name_part) {
         fprintf(ctx->file, "%s::", *name_part);
         name_part++;
@@ -101,11 +101,11 @@ void enxlog_sink_file_log_entry_open(
 }
 
 void enxlog_sink_file_log_entry_write(
-    void* context,
+    void *context,
     const char *ptr,
     size_t length)
 {
-    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
 
     fwrite(ptr, 1, length, ctx->file);
 }
@@ -113,7 +113,7 @@ void enxlog_sink_file_log_entry_write(
 void enxlog_sink_file_log_entry_close(
     void *context)
 {
-    struct enxlog_sink_file_context* ctx = (struct enxlog_sink_file_context*)context;
+    struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
 
     fprintf(ctx->file, "\n");
     fflush(ctx->file);

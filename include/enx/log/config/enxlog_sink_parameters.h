@@ -31,8 +31,8 @@ __BEGIN_DECLS
 
 struct enxlog_sink_parameter
 {
-    const char* key;
-    const char* value;
+    const char *key;
+    const char *value;
     struct enxlog_sink_parameter *next;
 };
 
@@ -46,26 +46,26 @@ struct enxlog_sink_parameters
  * @brief Creates a sink parameters object
  *
  */
-struct enxlog_sink_parameters* enxlog_sink_parameters_create();
+struct enxlog_sink_parameters *enxlog_sink_parameters_create();
 
 /**
  * @brief Destroys a sink parameters object
  *
  */
-void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters* parameters);
+void enxlog_sink_parameters_destroy(struct enxlog_sink_parameters *parameters);
 
 /**
  * @brief Adds a parameter to the parameters object
  *
  */
-void enxlog_sink_parameters_add(struct enxlog_sink_parameters* parameters, const char* key, const char* value);
+void enxlog_sink_parameters_add(struct enxlog_sink_parameters *parameters, const char *key, const char *value);
 
 /**
  * @brief Finds a parameter in the parameters object
  * @returns NULL if the key is not found
  *
  */
-const char* enxlog_sink_parameters_find(const struct enxlog_sink_parameters* parameters, const char* key);
+const char* enxlog_sink_parameters_find(const struct enxlog_sink_parameters *parameters, const char *key);
 
 
 __END_DECLS

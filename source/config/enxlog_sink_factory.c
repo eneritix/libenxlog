@@ -29,8 +29,8 @@
 
 
 static bool enxlog_sink_factory_create_stdout_sink(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
     sink->fn_log_entry_open = enxlog_sink_stdout_log_entry_open;
@@ -44,8 +44,8 @@ static bool enxlog_sink_factory_create_stdout_sink(
 }
 
 static bool enxlog_sink_factory_create_stdout_color_sink(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
     sink->fn_log_entry_open = enxlog_sink_stdout_color_log_entry_open;
@@ -58,8 +58,8 @@ static bool enxlog_sink_factory_create_stdout_color_sink(
 }
 
 static bool enxlog_sink_factory_create_file_sink(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
     const char* path = enxlog_sink_parameters_find(parameters, "path");
@@ -68,7 +68,7 @@ static bool enxlog_sink_factory_create_file_sink(
         return false;
     }
 
-    struct enxlog_sink_file_context* context = enxlog_sink_file_create();
+    struct enxlog_sink_file_context *context = enxlog_sink_file_create();
     context->path = path;
     context->file = NULL;
     if (!enxlog_sink_file_init(context)) {
@@ -89,12 +89,12 @@ static bool enxlog_sink_factory_create_file_sink(
 
 
 bool enxlog_sink_factory_create_sink(
-    struct enxlog_sink* sink,
-    const struct enxlog_sink_parameters* parameters,
+    struct enxlog_sink *sink,
+    const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
 
-    const char* value = enxlog_sink_parameters_find(parameters, "type");
+    const char *value = enxlog_sink_parameters_find(parameters, "type");
     if (value == NULL) {
         error_callback(0, 0, "Sink type not specified");
         return false;
