@@ -339,7 +339,7 @@ void enxlog_log(
  */
 #define LOG_ERROR(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg __args[] = {                                           \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_ERROR, __FUNCTION__, __LINE__, format, __args);         \
@@ -353,7 +353,7 @@ do {                                                                            
  */
 #define LOG_WARN(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg __args[] = {                                           \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_WARN, __FUNCTION__, __LINE__, format, __args);          \
@@ -367,7 +367,7 @@ do {                                                                            
  */
 #define LOG_INFO(logger, format, ...)                                                   \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg __args[] = {                                           \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_INFO, __FUNCTION__, __LINE__, format, __args);          \
@@ -381,7 +381,7 @@ do {                                                                            
  */
 #define LOG_DEBUG(logger, format, ...)                                                  \
 do {                                                                                    \
-    const struct enxtxt_fstr_arg *__args = (const struct enxtxt_fstr_arg []) {          \
+    const struct enxtxt_fstr_arg __args[] = {                                           \
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, format, __args);         \

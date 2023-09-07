@@ -57,6 +57,8 @@ target_include_directories(enxlog PUBLIC include)
 
 if (LIBENXLOG_CONFIG_PARSER)
     target_link_libraries(enxlog PUBLIC enxtxt yaml)
+else()
+    target_link_libraries(enxlog PUBLIC enxtxt)
 endif(LIBENXLOG_CONFIG_PARSER)
 
 add_executable(test_basic test/test_basic.c test/test_utils.c)
