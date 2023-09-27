@@ -25,8 +25,6 @@
 cmake_minimum_required(VERSION 3.0)
 project(libenxlog)
 
-add_subdirectory(../libenxtxt libenxtxt EXCLUDE_FROM_ALL)
-
 option(LIBENXLOG_CONFIG_PARSER "Include runtime configuration parser" ON)
 
 set(enxlog_SOURCES
