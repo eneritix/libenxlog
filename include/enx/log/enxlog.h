@@ -277,9 +277,9 @@ struct enxlog_lock
 static const struct enxlog_lock *_var_name =                \
     (const struct enxlog_lock []) {                         \
     {                                                       \
-        .context = _context,                                \
         .fn_lock = _fn_lock,                                \
-        .fn_unlock = _fn_unlock                             \
+        .fn_unlock = _fn_unlock,                            \
+        .context = _context                                 \
     }                                                       \
 };
 
