@@ -41,7 +41,8 @@ enum enxlog_loglevel
     LOGLEVEL_ERROR,
     LOGLEVEL_WARN,
     LOGLEVEL_INFO,
-    LOGLEVEL_DEBUG
+    LOGLEVEL_DEBUG,
+    LOGLEVEL_TRACE
 };
 
 /** \defgroup logger_functions Logger Functions
@@ -385,6 +386,20 @@ do {                                                                            
     __VA_ARGS__                                                                         \
     };                                                                                  \
     enxlog_log(logger, LOGLEVEL_DEBUG, __FUNCTION__, __LINE__, format, __args);         \
+} while (0)
+
+/**
+ * Logs trace information
+ * @param logger The logger
+ * @param format A format string
+ * @param ... A variable list of arguments
+ */
+#define LOG_TRACE(logger, format, ...)                                                  \
+do {                                                                                    \
+    const struct enxtxt_fstr_arg __args[] = {                                           \
+    __VA_ARGS__                                                                         \
+    };                                                                                  \
+    enxlog_log(logger, LOGLEVEL_TRACE, __FUNCTION__, __LINE__, format, __args);         \
 } while (0)
 
 /** @} */
