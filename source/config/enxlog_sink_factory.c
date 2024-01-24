@@ -33,10 +33,11 @@ static bool enxlog_sink_factory_create_stdout_sink(
     const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
+    sink->fn_init = NULL;
+    sink->fn_shutdown = NULL;
     sink->fn_log_entry_open = enxlog_sink_stdout_log_entry_open;
     sink->fn_log_entry_write = enxlog_sink_stdout_log_entry_write;
     sink->fn_log_entry_close = enxlog_sink_stdout_log_entry_close;
-    sink->fn_shutdown = NULL;
     sink->context = NULL;
     sink->valid = true;
 
@@ -48,6 +49,8 @@ static bool enxlog_sink_factory_create_stdout_color_sink(
     const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
+    sink->fn_init = NULL;
+    sink->fn_shutdown = NULL;
     sink->fn_log_entry_open = enxlog_sink_stdout_color_log_entry_open;
     sink->fn_log_entry_write = enxlog_sink_stdout_color_log_entry_write;
     sink->fn_log_entry_close = enxlog_sink_stdout_color_log_entry_close;
