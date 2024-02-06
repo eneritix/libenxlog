@@ -32,6 +32,7 @@
 #define LOG_COLOR_RED "\x1b[31m"
 #define LOG_COLOR_GREEN "\x1b[32m"
 #define LOG_COLOR_DARK_GRAY "\x1b[90m"
+#define LOG_COLOR_YELLOW "\x1b[93m"
 #define LOG_COLOR_RESET "\x1b[0m"
 
 
@@ -59,7 +60,7 @@ void enxlog_sink_stdout_color_log_entry_open(
     // Severity
     switch (loglevel) {
         case LOGLEVEL_ERROR: printf(LOG_COLOR_RED   "-- ERROR -- " LOG_COLOR_RESET); break;
-        case LOGLEVEL_WARN: printf(LOG_COLOR_WHITE  "-- WARN  -- " LOG_COLOR_RESET); break;
+        case LOGLEVEL_WARN: printf(LOG_COLOR_YELLOW "-- WARN  -- " LOG_COLOR_RESET); break;
         case LOGLEVEL_INFO: printf(LOG_COLOR_RESET  "-- INFO  -- "); break;
         case LOGLEVEL_DEBUG: printf(LOG_COLOR_RESET "-- DEBUG -- "); break;
         default : break;
