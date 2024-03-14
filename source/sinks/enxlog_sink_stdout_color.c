@@ -63,6 +63,7 @@ void enxlog_sink_stdout_color_log_entry_open(
         case LOGLEVEL_WARN: printf(LOG_COLOR_YELLOW "-- WARN  -- " LOG_COLOR_RESET); break;
         case LOGLEVEL_INFO: printf(LOG_COLOR_RESET  "-- INFO  -- "); break;
         case LOGLEVEL_DEBUG: printf(LOG_COLOR_RESET "-- DEBUG -- "); break;
+        case LOGLEVEL_TRACE: printf(LOG_COLOR_RESET "-- TRACE -- "); break;
         default : break;
     }
 

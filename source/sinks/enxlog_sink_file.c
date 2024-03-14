@@ -84,6 +84,7 @@ void enxlog_sink_file_log_entry_open(
         case LOGLEVEL_WARN: fprintf(ctx->file, "-- WARN  -- "); break;
         case LOGLEVEL_INFO: fprintf(ctx->file, "-- INFO  -- "); break;
         case LOGLEVEL_DEBUG: fprintf(ctx->file, "-- DEBUG -- "); break;
+        case LOGLEVEL_TRACE: fprintf(ctx->file, "-- TRACE -- "); break;
         default : break;
     }
 

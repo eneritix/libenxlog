@@ -51,6 +51,7 @@ void enxlog_sink_stdout_log_entry_open(
         case LOGLEVEL_WARN: printf("-- WARN  -- "); break;
         case LOGLEVEL_INFO: printf("-- INFO  -- "); break;
         case LOGLEVEL_DEBUG: printf("-- DEBUG -- "); break;
+        case LOGLEVEL_TRACE: printf("-- TRACE -- "); break;
         default : break;
     }
 

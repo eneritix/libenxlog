@@ -474,6 +474,9 @@ static enum enxlog_loglevel enxlog_config_parse_loglevel(const char *name)
 
     } else if (strcmp(name, "DEBUG") == 0) {
         return LOGLEVEL_DEBUG;
+
+    } else if (strcmp(name, "TRACE") == 0) {
+        return LOGLEVEL_TRACE;
     }
 
     return LOGLEVEL_NONE;
