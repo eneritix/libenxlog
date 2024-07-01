@@ -29,6 +29,16 @@
 
 __BEGIN_DECLS
 
+struct enxlog_sink_stdout_context
+{
+    size_t tag_length;
+};
+
+struct enxlog_sink_stdout_context *enxlog_sink_stdout_create();
+void enxlog_sink_stdout_destroy(void *context);
+
+bool enxlog_sink_stdout_init(void *context);
+void enxlog_sink_stdout_shutdown(void *context);
 
 void enxlog_sink_stdout_log_entry_open(
     void *context,

@@ -33,12 +33,14 @@ static bool enxlog_sink_factory_create_stdout_sink(
     const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
-    sink->fn_init = NULL;
-    sink->fn_shutdown = NULL;
+    struct enxlog_sink_stdout_context *context = enxlog_sink_stdout_create();
+
+    sink->fn_init = enxlog_sink_stdout_init;
+    sink->fn_shutdown = enxlog_sink_stdout_shutdown;
     sink->fn_log_entry_open = enxlog_sink_stdout_log_entry_open;
     sink->fn_log_entry_write = enxlog_sink_stdout_log_entry_write;
     sink->fn_log_entry_close = enxlog_sink_stdout_log_entry_close;
-    sink->context = NULL;
+    sink->context = context;
     sink->valid = true;
 
     return true;
@@ -49,12 +51,14 @@ static bool enxlog_sink_factory_create_stdout_color_sink(
     const struct enxlog_sink_parameters *parameters,
     enxlog_config_parser_error_callback_t error_callback)
 {
-    sink->fn_init = NULL;
-    sink->fn_shutdown = NULL;
+    struct enxlog_sink_stdout_color_context *context = enxlog_sink_stdout_color_create();
+
+    sink->fn_init = enxlog_sink_stdout_color_init;
+    sink->fn_shutdown = enxlog_sink_stdout_color_shutdown;
     sink->fn_log_entry_open = enxlog_sink_stdout_color_log_entry_open;
     sink->fn_log_entry_write = enxlog_sink_stdout_color_log_entry_write;
     sink->fn_log_entry_close = enxlog_sink_stdout_color_log_entry_close;
-    sink->context = NULL;
+    sink->context = context;
     sink->valid = true;
 
     return true;

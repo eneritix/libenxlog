@@ -35,6 +35,7 @@ struct enxlog_sink_file_context
 {
     const char *path;
     FILE *file;
+    size_t tag_length;
 };
 
 

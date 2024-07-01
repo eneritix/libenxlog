@@ -50,11 +50,12 @@ void print_filter_tree(const struct enxlog_filter *filter)
 const char *loglevel_to_string(enum enxlog_loglevel loglevel)
 {
     switch (loglevel) {
-    case LOGLEVEL_NONE: return "LOGLEVEL_NONE";
+    case LOGLEVEL_NONE:  return "LOGLEVEL_NONE";
     case LOGLEVEL_ERROR: return "LOGLEVEL_ERROR";
-    case LOGLEVEL_WARN: return "LOGLEVEL_WARN";
-    case LOGLEVEL_INFO: return "LOGLEVEL_INFO";
+    case LOGLEVEL_WARN:  return "LOGLEVEL_WARN";
+    case LOGLEVEL_INFO:  return "LOGLEVEL_INFO";
     case LOGLEVEL_DEBUG: return "LOGLEVEL_DEBUG";
+    case LOGLEVEL_TRACE: return "LOGLEVEL_TRACE";
     default: return "";
     }
 }

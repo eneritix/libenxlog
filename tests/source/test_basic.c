@@ -41,10 +41,11 @@ enxlog_filter(filter_tree)
     enxlog_end_filter_entry()
 enxlog_end_filter()
 
+static struct enxlog_sink_stdout_context sink_stdout_context;
 
 enxlog_sink_list(sink_list)
     enxlog_sink(
-        NULL,
+        &sink_stdout_context,
         NULL,
         NULL,
         enxlog_sink_stdout_log_entry_open,
@@ -66,6 +67,7 @@ int main(void)
     LOG_ERROR(logger_one, "This should print");
     LOG_WARN(logger_two, "This should print");
     LOG_ERROR(logger_three, "This should print");
+    LOG_ERROR(logger_three, "Test\nnewline\nalignment");
 
     unsigned int value = 1234;
     LOG_INFO(

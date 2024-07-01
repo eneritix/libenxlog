@@ -30,6 +30,16 @@
 
 __BEGIN_DECLS
 
+struct enxlog_sink_stdout_color_context
+{
+    size_t tag_length;
+};
+
+struct enxlog_sink_stdout_color_context *enxlog_sink_stdout_color_create();
+void enxlog_sink_stdout_color_destroy(void *context);
+
+bool enxlog_sink_stdout_color_init(void *context);
+void enxlog_sink_stdout_color_shutdown(void *context);
 
 void enxlog_sink_stdout_color_log_entry_open(
     void *context,

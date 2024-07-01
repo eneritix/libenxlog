@@ -65,6 +65,7 @@ void enxlog_sink_file_log_entry_open(
     unsigned int line)
 {
     struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
+    ctx->tag_length = 0;
 
     // Timestamp
     struct timeval curTime;
@@ -76,15 +77,15 @@ void enxlog_sink_file_log_entry_open(
 
     char tag[64];
     strftime(tag, sizeof(tag), "%Y-%m-%d %H:%M:%S", timeinfo);
-    fprintf(ctx->file, "%s.%03d ", tag, milli);
+    ctx->tag_length += fprintf(ctx->file, "%s.%03d ", tag, milli);
 
     // Severity
     switch (loglevel) {
-        case LOGLEVEL_ERROR: fprintf(ctx->file, "-- ERROR -- "); break;
-        case LOGLEVEL_WARN: fprintf(ctx->file, "-- WARN  -- "); break;
-        case LOGLEVEL_INFO: fprintf(ctx->file, "-- INFO  -- "); break;
-        case LOGLEVEL_DEBUG: fprintf(ctx->file, "-- DEBUG -- "); break;
-        case LOGLEVEL_TRACE: fprintf(ctx->file, "-- TRACE -- "); break;
+        case LOGLEVEL_ERROR: ctx->tag_length += fprintf(ctx->file, "-- ERROR -- "); break;
+        case LOGLEVEL_WARN:  ctx->tag_length += fprintf(ctx->file, "-- WARN  -- "); break;
+        case LOGLEVEL_INFO:  ctx->tag_length += fprintf(ctx->file, "-- INFO  -- "); break;
+        case LOGLEVEL_DEBUG: ctx->tag_length += fprintf(ctx->file, "-- DEBUG -- "); break;
+        case LOGLEVEL_TRACE: ctx->tag_length += fprintf(ctx->file, "-- TRACE -- "); break;
         default : break;
     }
 
@@ -92,13 +93,12 @@ void enxlog_sink_file_log_entry_open(
     // Path
     const char **name_part = logger->name;
     while (*name_part) {
-        fprintf(ctx->file, "%s::", *name_part);
+        ctx->tag_length += fprintf(ctx->file, "%s::", *name_part);
         name_part++;
     }
 
     // Function and line
-    fprintf(ctx->file, "%s:%u: ", func, line);
-
+    ctx->tag_length += fprintf(ctx->file, "%s:%u: ", func, line);
 }
 
 void enxlog_sink_file_log_entry_write(
@@ -108,7 +108,15 @@ void enxlog_sink_file_log_entry_write(
 {
     struct enxlog_sink_file_context *ctx = (struct enxlog_sink_file_context *)context;
 
-    fwrite(ptr, 1, length, ctx->file);
+    if ((length == 1) && *ptr == '\n') {
+        putc('\n', stdout);
+        for (size_t i=0; i < ctx->tag_length; ++i) {
+            putc(' ', ctx->file);
+        }
+
+    } else {
+        fwrite(ptr, 1, length, ctx->file);
+    }
 }
 
 void enxlog_sink_file_log_entry_close(

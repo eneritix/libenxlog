@@ -23,8 +23,30 @@
 #include <enx/log/sinks/enxlog_sink_stdout.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 #include <sys/time.h>
+
+struct enxlog_sink_stdout_context *enxlog_sink_stdout_create()
+{
+    return malloc(sizeof(struct enxlog_sink_stdout_context));
+}
+
+void enxlog_sink_stdout_destroy(void *context)
+{
+    struct enxlog_sink_stdout_context *ctx = (struct enxlog_sink_stdout_context *)context;
+    free(ctx);
+}
+
+bool enxlog_sink_stdout_init(void *context)
+{
+    return true;
+}
+
+void enxlog_sink_stdout_shutdown(void *context)
+{
+
+}
 
 void enxlog_sink_stdout_log_entry_open(
     void *context,
@@ -33,6 +55,9 @@ void enxlog_sink_stdout_log_entry_open(
     const char *func,
     unsigned int line)
 {
+    struct enxlog_sink_stdout_context *ctx = (struct enxlog_sink_stdout_context *)context;
+    ctx->tag_length = 0;
+
     // Timestamp
     struct timeval curTime;
     gettimeofday(&curTime, NULL);
@@ -43,15 +68,15 @@ void enxlog_sink_stdout_log_entry_open(
 
     char tag[64];
     strftime(tag, sizeof(tag), "%Y-%m-%d %H:%M:%S", timeinfo);
-    printf("%s.%03d ", tag, milli);
+    ctx->tag_length += printf("%s.%03d ", tag, milli);
 
     // Severity
     switch (loglevel) {
-        case LOGLEVEL_ERROR: printf("-- ERROR -- "); break;
-        case LOGLEVEL_WARN: printf("-- WARN  -- "); break;
-        case LOGLEVEL_INFO: printf("-- INFO  -- "); break;
-        case LOGLEVEL_DEBUG: printf("-- DEBUG -- "); break;
-        case LOGLEVEL_TRACE: printf("-- TRACE -- "); break;
+        case LOGLEVEL_ERROR: ctx->tag_length += printf("-- ERROR -- "); break;
+        case LOGLEVEL_WARN:  ctx->tag_length += printf("-- WARN  -- "); break;
+        case LOGLEVEL_INFO:  ctx->tag_length += printf("-- INFO  -- "); break;
+        case LOGLEVEL_DEBUG: ctx->tag_length += printf("-- DEBUG -- "); break;
+        case LOGLEVEL_TRACE: ctx->tag_length += printf("-- TRACE -- "); break;
         default : break;
     }
 
@@ -59,12 +84,12 @@ void enxlog_sink_stdout_log_entry_open(
     // Path
     const char **name_part = logger->name;
     while (*name_part) {
-        printf("%s::", *name_part);
+        ctx->tag_length += printf("%s::", *name_part);
         name_part++;
     }
 
     // Function and line
-    printf("%s:%u: ", func, line);
+    ctx->tag_length += printf("%s:%u: ", func, line);
 }
 
 void enxlog_sink_stdout_log_entry_write(
@@ -72,7 +97,17 @@ void enxlog_sink_stdout_log_entry_write(
     const char *ptr,
     size_t length)
 {
-    fwrite(ptr, 1, length, stdout);
+    struct enxlog_sink_stdout_context *ctx = (struct enxlog_sink_stdout_context *)context;
+
+    if ((length == 1) && *ptr == '\n') {
+        putc('\n', stdout);
+        for (size_t i=0; i < ctx->tag_length; ++i) {
+            putc(' ', stdout);
+        }
+
+    } else {
+        fwrite(ptr, 1, length, stdout);
+    }
 }
 
 void enxlog_sink_stdout_log_entry_close(
