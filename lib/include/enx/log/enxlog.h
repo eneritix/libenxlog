@@ -183,6 +183,12 @@ typedef void (*enxlog_sink_log_entry_write_fn_t)(
     size_t length);
 
 /**
+ * @brief Sink log entry newline callback function
+ * @param context The user supplied context
+ */
+typedef void (*enxlog_sink_log_entry_newline_fn_t)(void* context);
+
+/**
  * @brief Sink log entry close callback function
  * @param context The user supplied context
  */
@@ -225,6 +231,7 @@ static const struct enxlog_sink *_var_name =                \
  * @param _fn_shutdown The sink shutdown function. See #enxlog_sink_shutdown_fn_t
  * @param _fn_log_entry_open The log entry open function. See #enxlog_sink_log_entry_open_fn_t
  * @param _fn_log_entry_write The log entry write function. See #enxlog_sink_log_entry_write_fn_t
+ * @param _fn_log_entry_newline The log entry newline function. See #enxlog_sink_log_entry_newline_fn_t
  * @param _fn_log_entry_close The log entry close function. See #enxlog_sink_log_entry_close_fn_t
  */
 #define enxlog_sink(_context, _fn_init, _fn_shutdown, _fn_log_entry_open, _fn_log_entry_write, _fn_log_entry_close) \

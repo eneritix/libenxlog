@@ -59,7 +59,7 @@ struct some_struct
 static void enxtxt_fstr_fmt_some_struct(const struct enxtxt_fstr_arg *, enxtxt_fstr_output_function_t, void *);
 
 #define f_some_struct(_ptr) \
-    { .fn_fmt = enxtxt_fstr_fmt_some_struct, .value._user = _ptr }
+    { .fn_fmt = enxtxt_fstr_fmt_some_struct, ._user = _ptr }
 
 
 
@@ -91,7 +91,7 @@ static void enxtxt_fstr_fmt_some_struct(
     enxtxt_fstr_output_function_t output_fn,
     void *output_fn_context)
 {
-    const struct some_struct *some_struct = (const struct some_struct *)arg->value._user;
+    const struct some_struct *some_struct = (const struct some_struct *)arg->_user;
     enxtxt_fstr_cb(
         output_fn,
         output_fn_context,

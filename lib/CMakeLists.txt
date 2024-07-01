@@ -22,11 +22,37 @@
 #
 ###############################################################################
 
-cmake_minimum_required (VERSION 3.0...3.25)
-set(CMAKE_CXX_STANDARD 11)
+option(LIBENXLOG_CONFIG_PARSER "Include runtime configuration parser" ON)
 
-project(libenxlog)
+set(enxlog_SOURCES
+    source/enxlog.c
+    source/sinks/enxlog_sink_stdout.c
+    source/sinks/enxlog_sink_stdout_color.c
+    source/sinks/enxlog_sink_file.c
+    )
 
-add_subdirectory(deps/libenxtxt/lib)
-add_subdirectory(lib)
-add_subdirectory(tests)
+if (LIBENXLOG_CONFIG_PARSER)
+    set(enxlog_SOURCES
+        ${enxlog_SOURCES}
+        source/config/enxlog_config_parser.c
+        source/config/enxlog_filter_config.c
+        source/config/enxlog_sink_config.c
+        source/config/enxlog_sink_factory.c
+        source/config/enxlog_sink_parameters.c
+        )
+endif(LIBENXLOG_CONFIG_PARSER)
+
+add_library(enxlog STATIC
+    ${enxlog_SOURCES}
+)
+
+target_compile_options(enxlog PRIVATE -Wall -Wextra -Wpedantic -Werror -Wno-unused-parameter)
+
+target_include_directories(enxlog PUBLIC include)
+
+if (LIBENXLOG_CONFIG_PARSER)
+    target_link_libraries(enxlog PUBLIC enxtxt yaml)
+else()
+    target_link_libraries(enxlog PUBLIC enxtxt)
+endif(LIBENXLOG_CONFIG_PARSER)
+

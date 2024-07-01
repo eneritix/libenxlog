@@ -22,11 +22,20 @@
 #
 ###############################################################################
 
-cmake_minimum_required (VERSION 3.0...3.25)
-set(CMAKE_CXX_STANDARD 11)
+set(LIBENXLOG_CONFIG_PARSER CACHE BOOL "Include runtime configuration parser" ON)
 
-project(libenxlog)
 
-add_subdirectory(deps/libenxtxt/lib)
-add_subdirectory(lib)
-add_subdirectory(tests)
+add_executable(test_basic source/test_basic.c source/test_utils.c)
+target_link_libraries(test_basic enxlog)
+
+add_executable(test_file_sink source/test_file_sink.c source/test_utils.c)
+target_link_libraries(test_file_sink enxlog)
+
+add_executable(test_noinit source/test_noinit.c source/test_utils.c)
+target_link_libraries(test_noinit enxlog)
+
+add_executable(test_custom_formatter source/test_custom_formatter.c source/test_utils.c)
+target_link_libraries(test_custom_formatter enxlog)
+
+add_executable(test_config_parser source/test_config_parser.c source/test_utils.c)
+target_link_libraries(test_config_parser enxlog)

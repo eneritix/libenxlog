@@ -65,7 +65,7 @@ int main(void)
 
     LOG_ERROR(logger_one, "This should print");
     LOG_WARN(logger_two, "This should print");
-    LOG_INFO(logger_three, "This should print");
+    LOG_ERROR(logger_three, "This should print");
 
     unsigned int value = 1234;
     LOG_INFO(
