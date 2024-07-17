@@ -64,7 +64,6 @@ void enxlog_sink_stdout_color_log_entry_open(
     const char *func,
     unsigned int line)
 {
-
     struct enxlog_sink_stdout_color_context *ctx = (struct enxlog_sink_stdout_color_context *)context;
     ctx->tag_length = 0;
 
@@ -78,20 +77,22 @@ void enxlog_sink_stdout_color_log_entry_open(
 
     char tag[64];
     strftime(tag, sizeof(tag), "%Y-%m-%d %H:%M:%S", timeinfo);
-    ctx->tag_length += printf(LOG_COLOR_DARK_GRAY "%s.%03d" LOG_COLOR_RESET " ", tag, milli);
+    fputs(LOG_COLOR_DARK_GRAY, stdout);
+    ctx->tag_length += printf("%s.%03d", tag, milli);
+    fputs(LOG_COLOR_RESET, stdout);
+    ctx->tag_length += printf(" ");
 
     // Severity
     switch (loglevel) {
-        case LOGLEVEL_ERROR: ctx->tag_length += printf(LOG_COLOR_RED   "-- ERROR -- " LOG_COLOR_RESET); break;
-        case LOGLEVEL_WARN:  ctx->tag_length += printf(LOG_COLOR_YELLOW "-- WARN  -- " LOG_COLOR_RESET); break;
-        case LOGLEVEL_INFO:  ctx->tag_length += printf(LOG_COLOR_RESET  "-- INFO  -- "); break;
-        case LOGLEVEL_DEBUG: ctx->tag_length += printf(LOG_COLOR_RESET "-- DEBUG -- "); break;
-        case LOGLEVEL_TRACE: ctx->tag_length += printf(LOG_COLOR_RESET "-- TRACE -- "); break;
+        case LOGLEVEL_ERROR:  fputs(LOG_COLOR_RED, stdout);      ctx->tag_length += printf("-- ERROR -- "); fputs(LOG_COLOR_RESET, stdout); break;
+        case LOGLEVEL_WARN:   fputs(LOG_COLOR_YELLOW, stdout);   ctx->tag_length += printf("-- WARN  -- "); fputs(LOG_COLOR_RESET, stdout); break;
+        case LOGLEVEL_INFO:   fputs(LOG_COLOR_RESET, stdout);    ctx->tag_length += printf("-- INFO  -- "); fputs(LOG_COLOR_RESET, stdout); break;
+        case LOGLEVEL_DEBUG:  fputs(LOG_COLOR_RESET, stdout);    ctx->tag_length += printf("-- DEBUG -- "); fputs(LOG_COLOR_RESET, stdout); break;
+        case LOGLEVEL_TRACE:  fputs(LOG_COLOR_RESET, stdout);    ctx->tag_length += printf("-- TRACE -- "); fputs(LOG_COLOR_RESET, stdout); break;
         default : break;
     }
 
-
-    ctx->tag_length += printf("%s", LOG_COLOR_BROWN);
+    fputs(LOG_COLOR_BROWN, stdout);
 
     // Path
     const char **name_part = logger->name;
@@ -101,7 +102,9 @@ void enxlog_sink_stdout_color_log_entry_open(
     }
 
     // Function and line
-    ctx->tag_length += printf( "%s:%u" LOG_COLOR_RESET ": ", func, line);
+    ctx->tag_length += printf("%s:%u", func, line);
+    fputs(LOG_COLOR_RESET, stdout);
+    ctx->tag_length += printf(": ");
 }
 
 void enxlog_sink_stdout_color_log_entry_write(
